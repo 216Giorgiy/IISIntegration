@@ -1,7 +1,7 @@
 #include "..\precomp.hxx"
 
 OUT_OF_PROCESS_APPLICATION::OUT_OF_PROCESS_APPLICATION(
-    ASPNETCORE_CONFIG*  pConfig) :
+    REQUESTHANDLER_CONFIG*  pConfig) :
     m_pConfig(pConfig)
 {
     m_status = APPLICATION_STATUS::RUNNING;
@@ -16,6 +16,12 @@ OUT_OF_PROCESS_APPLICATION::~OUT_OF_PROCESS_APPLICATION()
         m_pProcessManager->ShutdownAllProcesses();
         m_pProcessManager->DereferenceProcessManager();
         m_pProcessManager = NULL;
+    }
+
+    if (m_pConfig != NULL)
+    {
+        delete m_pConfig;
+        m_pConfig = NULL;
     }
 }
 
@@ -52,7 +58,7 @@ OUT_OF_PROCESS_APPLICATION::GetProcess(
     return m_pProcessManager->GetProcess(m_pConfig, ppServerProcess);
 }
 
-ASPNETCORE_CONFIG*
+REQUESTHANDLER_CONFIG*
 OUT_OF_PROCESS_APPLICATION::QueryConfig() const
 {
     return m_pConfig;
@@ -84,12 +90,11 @@ OUT_OF_PROCESS_APPLICATION::Recycle()
 HRESULT
 OUT_OF_PROCESS_APPLICATION::CreateHandler(
     _In_  IHttpContext       *pHttpContext,
-    _In_  HTTP_MODULE_ID     *pModuleId,
     _Out_ IREQUEST_HANDLER   **pRequestHandler)
 {
     HRESULT hr = S_OK;
     IREQUEST_HANDLER* pHandler = NULL;
-    pHandler = new FORWARDING_HANDLER(pHttpContext, pModuleId, this);
+    pHandler = new FORWARDING_HANDLER(pHttpContext, this);
 
     if (pHandler == NULL)
     {

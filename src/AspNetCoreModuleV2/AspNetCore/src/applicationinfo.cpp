@@ -42,7 +42,7 @@ APPLICATION_INFO::~APPLICATION_INFO()
 
 HRESULT
 APPLICATION_INFO::Initialize(
-    _In_ ASPNETCORE_CONFIG   *pConfiguration,
+    _In_ ASPNETCORE_SHIM_CONFIG   *pConfiguration,
     _In_ FILE_WATCHER        *pFileWatcher
 )
 {
@@ -177,7 +177,9 @@ APPLICATION_INFO::UpdateAppOfflineFileHandle()
 }
 
 HRESULT
-APPLICATION_INFO::EnsureApplicationCreated()
+APPLICATION_INFO::EnsureApplicationCreated(
+    IHttpContext *pHttpContext
+)
 {
     HRESULT             hr = S_OK;
     BOOL                fLocked = FALSE;
@@ -222,7 +224,7 @@ APPLICATION_INFO::EnsureApplicationCreated()
                 goto Finished;
             }
 
-            hr = m_pfnAspNetCoreCreateApplication(m_pServer, m_pConfiguration, &pApplication);
+            hr = m_pfnAspNetCoreCreateApplication(m_pServer, pHttpContext->GetApplication(), &pApplication);
             if (FAILED(hr))
             {
                 goto Finished;

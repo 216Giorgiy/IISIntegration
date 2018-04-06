@@ -103,7 +103,7 @@ PROCESS_MANAGER::~PROCESS_MANAGER()
 
 HRESULT
 PROCESS_MANAGER::GetProcess(
-    _In_    ASPNETCORE_CONFIG      *pConfig,
+    _In_    REQUESTHANDLER_CONFIG      *pConfig,
     _Out_   SERVER_PROCESS        **ppServerProcess
 )
 {

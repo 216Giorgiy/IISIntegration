@@ -21,7 +21,7 @@ IHttpServer *       g_pHttpServer = NULL;
 HINSTANCE           g_hWinHttpModule;
 HINSTANCE           g_hAspNetCoreModule;
 HANDLE              g_hEventLog = NULL;
-
+PCSTR               g_szDebugLabel = "ASPNET_CORE_MODULE_REQUEST_HANDLER";
 
 VOID
 InitializeGlobalConfiguration(
@@ -276,15 +276,23 @@ HRESULT
 __stdcall
 CreateApplication(
     _In_  IHttpServer        *pServer,
-    _In_  ASPNETCORE_CONFIG  *pConfig,
+    _In_  IHttpApplication   *pHttpApplication,
     _Out_ IAPPLICATION       **ppApplication
 )
 {
     HRESULT      hr = S_OK;
     IAPPLICATION *pApplication = NULL;
+    REQUESTHANDLER_CONFIG *pConfig = NULL;
 
     // Initialze some global variables here
     InitializeGlobalConfiguration(pServer);
+
+    hr = REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(pServer, pHttpApplication, g_hEventLog, &pConfig);
+
+    if (FAILED(hr))
+    {
+        goto Finished;
+    }
 
     if (pConfig->QueryHostingModel() == APP_HOSTING_MODEL::HOSTING_IN_PROCESS)
     {
@@ -330,3 +338,4 @@ CreateApplication(
 Finished:
     return hr;
 }
+

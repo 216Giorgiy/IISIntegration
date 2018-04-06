@@ -10,9 +10,14 @@ typedef REQUEST_NOTIFICATION_STATUS(WINAPI * PFN_MANAGED_CONTEXT_HANDLER)(void *
 class IN_PROCESS_APPLICATION : public APPLICATION
 {
 public:
-    IN_PROCESS_APPLICATION(IHttpServer* pHttpServer, ASPNETCORE_CONFIG* pConfig);
+    IN_PROCESS_APPLICATION(IHttpServer* pHttpServer, REQUESTHANDLER_CONFIG *pConfig);
 
     ~IN_PROCESS_APPLICATION();
+
+    HRESULT
+	Initialize(
+		VOID
+	);
 
     __override
     VOID
@@ -37,7 +42,6 @@ public:
     HRESULT
     CreateHandler(
         _In_  IHttpContext       *pHttpContext,
-        _In_  HTTP_MODULE_ID     *pModuleId,
         _Out_ IREQUEST_HANDLER   **pRequestHandler)
     override;
 
@@ -106,7 +110,7 @@ public:
         return s_Application;
     }
 
-    ASPNETCORE_CONFIG*
+    REQUESTHANDLER_CONFIG*
     QueryConfig() const;
 
 private:
@@ -166,7 +170,7 @@ private:
     DWORD                           m_dwStdErrReadTotal;
     static IN_PROCESS_APPLICATION*  s_Application;
 
-    ASPNETCORE_CONFIG*              m_pConfig;
+    REQUESTHANDLER_CONFIG*          m_pConfig;
 
     VOID
     SetStdOut(

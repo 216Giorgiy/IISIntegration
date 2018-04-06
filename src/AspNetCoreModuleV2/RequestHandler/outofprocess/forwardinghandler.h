@@ -23,7 +23,6 @@ public:
     FORWARDING_HANDLER(
 
         _In_ IHttpContext     *pW3Context,
-        _In_  HTTP_MODULE_ID  *pModuleId,
         _In_ OUT_OF_PROCESS_APPLICATION  *pApplication);
 
     ~FORWARDING_HANDLER();
