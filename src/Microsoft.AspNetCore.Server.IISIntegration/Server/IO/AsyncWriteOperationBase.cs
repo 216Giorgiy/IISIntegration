@@ -67,8 +67,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
         }
 
-        public override void ResetOperation()
+        protected override void ResetOperation()
         {
+            base.ResetOperation();
+
             _requestHandler = default;
             _buffer = default;
             _handles.AsSpan().Clear();

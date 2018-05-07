@@ -96,18 +96,16 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             FreeOperationResources(hr, bytes);
         }
 
+        public abstract void FreeOperationResources(int hr, int bytes);
 
-        public void Reset()
+        protected virtual void ResetOperation()
         {
+            _completed = false;
             _exception = null;
             _result = int.MinValue;
             _state = null;
             _continuation = null;
         }
-
-        public abstract void FreeOperationResources(int hr, int bytes);
-
-        public abstract void ResetOperation();
 
         public readonly struct AsyncContinuation
         {

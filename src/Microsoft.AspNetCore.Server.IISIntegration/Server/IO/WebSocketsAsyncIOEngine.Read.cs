@@ -66,8 +66,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 _inputHandle.Dispose();
             }
 
-            public override void ResetOperation()
+            protected override void ResetOperation()
             {
+                base.ResetOperation();
+
                 _memory = default;
                 _inputHandle.Dispose();
                 _inputHandle = default;

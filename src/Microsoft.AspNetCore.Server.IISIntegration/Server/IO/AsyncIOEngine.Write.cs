@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 return NativeMethods.HttpWriteResponseBytes(requestHandler, dataChunks, chunkCount, out completionExpected);
             }
 
-            public override void ResetOperation()
+            protected override void ResetOperation()
             {
                 base.ResetOperation();
 

@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 return NativeMethods.HttpWebsocketsWriteBytes(requestHandler, dataChunks, chunkCount, WriteCallback, (IntPtr)_thisHandle, out completionExpected);
             }
 
-            public override void ResetOperation()
+            protected override void ResetOperation()
             {
                 base.ResetOperation();
 
