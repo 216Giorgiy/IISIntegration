@@ -93,7 +93,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                         // If at this point request was not upgraded just start a normal IO engine
                         if (AsyncIO == null)
                         {
-                            AsyncIO = new AsyncIOEngine(_pInProcessHandler, _server.LoggerFactory);
+                            AsyncIO = new AsyncIOEngine(_pInProcessHandler);
                         }
 
                         _processBodiesTask = ConsumeAsync();

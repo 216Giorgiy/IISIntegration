@@ -3,18 +3,24 @@
 
 using System;
 using System.Buffers;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.IISIntegration
 {
-    internal class WebSocketsAsyncIOEngine: IAsyncIOEngine
+    internal partial class WebSocketsAsyncIOEngine: IAsyncIOEngine
     {
         private readonly IntPtr _handler;
 
         private bool _isInitialized = false;
 
-        private AsyncFlushOperation _initializationFlush;
+        private AsyncInitializeOperation _initializationFlush;
+
+        private WebSocketWriteOperation _cachedWebSocketWriteOperation;
+
+        private WebSocketReadOperation _cachedWebSocketReadOperation;
+
+        private AsyncInitializeOperation _cachedAsyncInitializeOperation;
 
         public WebSocketsAsyncIOEngine(IntPtr handler)
         {
@@ -28,7 +34,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 throw new InvalidOperationException("Already initialized");
             }
 
-            _initializationFlush = new AsyncFlushOperation();
+            _initializationFlush = new AsyncInitializeOperation();
             _initializationFlush.Initialize(_handler);
             var continuation = _initializationFlush.Invoke();
 
@@ -52,10 +58,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public ValueTask<int> WriteAsync(ReadOnlySequence<byte> data)
         {
-            var read = new WebSocketWriteOperation();
-            read.Initialize(_handler, data);
-            read.Invoke();
-            return new ValueTask<int>(read, 0);
+            var write = GetWriteOperation();
+            write.Initialize(_handler, data);
+            write.Invoke();
+            return new ValueTask<int>(write, 0);
         }
 
         public ValueTask FlushAsync()
@@ -87,6 +93,36 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         public void Stop()
         {
             // TODO
+        }
+
+
+
+
+        private WebSocketReadOperation GetReadOperation() =>
+            Interlocked.Exchange(ref _cachedWebSocketReadOperation, null) ??
+            new WebSocketReadOperation(this);
+
+        private WebSocketWriteOperation GetWriteOperation() =>
+            Interlocked.Exchange(ref _cachedWebSocketWriteOperation, null) ??
+            new WebSocketWriteOperation(this);
+
+        private AsyncInitializeOperation GetInitializeOperation() =>
+            Interlocked.Exchange(ref _cachedAsyncInitializeOperation, null) ??
+            new AsyncInitializeOperation(this);
+
+        private void ReturnOperation(AsyncInitializeOperation operation)
+        {
+            Volatile.Write(ref _cachedAsyncInitializeOperation, operation);
+        }
+
+        private void ReturnOperation(WebSocketWriteOperation operation)
+        {
+            Volatile.Write(ref _cachedWebSocketWriteOperation, operation);
+        }
+
+        private void ReturnOperation(WebSocketReadOperation operation)
+        {
+            Volatile.Write(ref _cachedWebSocketReadOperation, operation);
         }
     }
 }

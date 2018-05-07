@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
 
 namespace Microsoft.AspNetCore.Server.IISIntegration
@@ -45,27 +44,36 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         void IValueTaskSource.GetResult(short token)
         {
-            if (_exception != null)
+            var exception = _exception;
+
+            ResetOperation();
+
+            if (exception != null)
             {
-                throw _exception;
+                throw exception;
             }
         }
 
         public int GetResult(short token)
         {
-            if (_exception != null)
+            var exception = _exception;
+            var result = _result;
+
+            ResetOperation();
+
+            if (exception != null)
             {
-                throw _exception;
+                throw exception;
             }
 
-            return _result;
+            return result;
         }
 
-        public IISAsyncContinuation? Invoke()
+        public AsyncContinuation? Invoke()
         {
             if (InvokeOperation())
             {
-                return new IISAsyncContinuation(_continuation, _state);
+                return new AsyncContinuation(_continuation, _state);
             }
             return null;
         }
@@ -73,11 +81,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         public abstract bool InvokeOperation();
 
 
-        public IISAsyncContinuation NotifyCompletion(int hr, int bytes)
+        public AsyncContinuation NotifyCompletion(int hr, int bytes)
         {
             SetResult(hr, bytes);
-            NotifyOperationCompletion(hr, bytes);
-            return new IISAsyncContinuation(_continuation, _state);
+            return new AsyncContinuation(_continuation, _state);
         }
 
         protected void SetResult(int hr, int bytes)
@@ -85,9 +92,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _completed = true;
             _result = bytes;
             _exception = Marshal.GetExceptionForHR(hr);
+
+            FreeOperationResources(hr, bytes);
         }
 
-        public abstract void NotifyOperationCompletion(int hr, int bytes);
 
         public void Reset()
         {
@@ -97,14 +105,16 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _continuation = null;
         }
 
+        public abstract void FreeOperationResources(int hr, int bytes);
+
         public abstract void ResetOperation();
 
-        public struct IISAsyncContinuation
+        public readonly struct AsyncContinuation
         {
             public Action<object> Continuation { get; }
             public object State { get; }
 
-            public IISAsyncContinuation(Action<object> continuation, object state)
+            public AsyncContinuation(Action<object> continuation, object state)
             {
                 Continuation = continuation;
                 State = state;

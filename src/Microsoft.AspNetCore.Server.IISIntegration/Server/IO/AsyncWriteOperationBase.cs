@@ -10,7 +10,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private IntPtr _requestHandler;
         private ReadOnlySequence<byte> _buffer;
-
         private MemoryHandle[] _handles;
 
         public void Initialize(IntPtr requestHandler, ReadOnlySequence<byte> buffer)
@@ -19,7 +18,47 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _buffer = buffer;
         }
 
-        public override void NotifyOperationCompletion(int hr, int bytes)
+        public override unsafe bool InvokeOperation()
+        {
+            if (_buffer.Length > int.MaxValue)
+            {
+                throw new InvalidOperationException($"Writes larger then {int.MaxValue} are not supported.");
+            }
+
+            bool completionExpected;
+            int hr;
+            var chunkCount = GetChunkCount();
+
+
+            var bufferLength = (int)_buffer.Length;
+
+            if (chunkCount < HttpDataChunkStackLimit)
+            {
+                // To avoid stackoverflows, we will only stackalloc if the write size is less than the StackChunkLimit
+                // The stack size is IIS is by default 128/256 KB, so we are generous with this threshold.
+                var chunks = stackalloc HttpApiTypes.HTTP_DATA_CHUNK[chunkCount];
+                hr = WriteSequence(chunkCount, _buffer, chunks, out completionExpected);
+            }
+            else
+            {
+                // Otherwise allocate the chunks on the heap.
+                var chunks = new HttpApiTypes.HTTP_DATA_CHUNK[chunkCount];
+                fixed (HttpApiTypes.HTTP_DATA_CHUNK* pDataChunks = chunks)
+                {
+                    hr = WriteSequence(chunkCount, _buffer, pDataChunks, out completionExpected);
+                }
+            }
+
+            if (!completionExpected)
+            {
+                SetResult(hr, bufferLength);
+                return true;
+            }
+
+            return false;
+        }
+
+        public override void FreeOperationResources(int hr, int bytes)
         {
             // Free the handles
             foreach (var handle in _handles)
@@ -28,47 +67,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
         }
 
-        public override unsafe bool InvokeOperation()
-        {
-            bool fCompletionExpected;
-            int hr;
-            var nChunks = GetChunkCount();
-
-            if (nChunks < HttpDataChunkStackLimit)
-            {
-                // To avoid stackoverflows, we will only stackalloc if the write size is less than the StackChunkLimit
-                // The stack size is IIS is by default 128/256 KB, so we are generous with this threshold.
-                var pDataChunks = stackalloc HttpApiTypes.HTTP_DATA_CHUNK[nChunks];
-                hr = WriteSequence(nChunks, _buffer, pDataChunks, out fCompletionExpected);
-            }
-            else
-            {
-                // Otherwise allocate the chunks on the heap.
-                var chunks = new HttpApiTypes.HTTP_DATA_CHUNK[nChunks];
-                fixed (HttpApiTypes.HTTP_DATA_CHUNK* pDataChunks = chunks)
-                {
-                    hr = WriteSequence(nChunks, _buffer, pDataChunks, out fCompletionExpected);
-                }
-            }
-
-            if (!fCompletionExpected)
-            {
-                SetResult(hr, (int)_buffer.Length);
-                NotifyOperationCompletion(hr, (int)_buffer.Length);
-                return true;
-            }
-
-            return false;
-        }
-
         public override void ResetOperation()
         {
             _requestHandler = default;
             _buffer = default;
-            foreach (var memoryHandle in _handles)
-            {
-                memoryHandle.Dispose();
-            }
             _handles.AsSpan().Clear();
         }
 
@@ -113,14 +115,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             return WriteChunks(_requestHandler, nChunks, pDataChunks, out fCompletionExpected);
         }
 
-        internal abstract unsafe int WriteChunks(IntPtr requestHandler, int nChunks, HttpApiTypes.HTTP_DATA_CHUNK* pDataChunks, out bool fCompletionExpected);
-    }
-
-    internal class AsyncWriteOperation : AsyncWriteOperationBase
-    {
-        internal override unsafe int WriteChunks(IntPtr requestHandler, int nChunks, HttpApiTypes.HTTP_DATA_CHUNK* pDataChunks, out bool fCompletionExpected)
-        {
-            return NativeMethods.HttpWriteResponseBytes(requestHandler, pDataChunks, nChunks, out fCompletionExpected);
-        }
+        internal abstract unsafe int WriteChunks(IntPtr requestHandler, int chunkCount, HttpApiTypes.HTTP_DATA_CHUNK* dataChunks, out bool completionExpected);
     }
 }

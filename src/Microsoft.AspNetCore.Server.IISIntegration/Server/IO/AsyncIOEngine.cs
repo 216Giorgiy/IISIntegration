@@ -1,27 +1,26 @@
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.IISIntegration
 {
-    internal class AsyncIOEngine : IAsyncIOEngine
+    internal partial class AsyncIOEngine : IAsyncIOEngine
     {
         private readonly IntPtr _handler;
 
-        private readonly ILogger<AsyncIOEngine> _logger;
-
-        public AsyncIOEngine(IntPtr handler, ILoggerFactory loggerFactory)
-        {
-            _handler = handler;
-            _logger = loggerFactory.CreateLogger<AsyncIOEngine>();
-        }
-
-        private object _syncRoot = new object();
         private AsyncIOOperation _nextOperation;
         private AsyncIOOperation _runningOperation;
+
+        private AsyncReadOperation _cachedAsyncReadOperation;
+        private AsyncWriteOperation _cachedAsyncWriteOperation;
+        private AsyncFlushOperation _cachedAsyncFlushOperation;
+
+        public AsyncIOEngine(IntPtr handler)
+        {
+            _handler = handler;
+        }
 
         public ValueTask<int> ReadAsync(Memory<byte> memory)
         {
@@ -42,13 +41,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private void Run(AsyncIOOperation ioOperation)
         {
-            lock (_syncRoot)
+            lock (this)
             {
                 if (_runningOperation != null)
                 {
                     if (_nextOperation == null)
                     {
-                        _logger.LogTrace("Operation {Operation} added to queue", ioOperation.GetType());
                         _nextOperation = ioOperation;
                     }
                     else
@@ -65,12 +63,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                     // operation went async
                     if (!completed)
                     {
-                        _logger.LogTrace("Operation {Operation} went async", ioOperation.GetType());
                         _runningOperation = ioOperation;
-                    }
-                    else
-                    {
-                        _logger.LogTrace("Operation {Operation} competed synchronously", ioOperation.GetType());
                     }
                 }
             }
@@ -78,9 +71,9 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private void CancelPendingRead()
         {
-            lock (_syncRoot)
+            lock (this)
             {
-                if (_runningOperation is AsyncReadOperation)
+                if (_runningOperation is AsyncReadOperation && _nextOperation != null)
                 {
                     NativeMethods.HttpTryCancelIO(_handler);
                 }
@@ -100,11 +93,9 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             AsyncIOOperation.IISAsyncContinuation continuation;
             AsyncIOOperation.IISAsyncContinuation? nextContinuation = null;
 
-            lock (_syncRoot)
+            lock (this)
             {
                 Debug.Assert(_runningOperation != null);
-
-                _logger.LogTrace("Got notify completion for {Operation}", _runningOperation.GetType());
 
                 continuation = _runningOperation.NotifyCompletion(hr, bytes);
 
@@ -119,12 +110,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                     // operation went async
                     if (nextContinuation == null)
                     {
-                        _logger.LogTrace("Next operation {Operation} went async", next.GetType());
                         _runningOperation = next;
-                    }
-                    else
-                    {
-                        _logger.LogTrace("Next operation {Operation} competed synchronously", next.GetType());
                     }
                 }
             }
@@ -135,7 +121,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public void Stop()
         {
-            lock (_syncRoot)
+            lock (this)
             {
                 if (_runningOperation != null || _nextOperation != null)
                 {
@@ -144,19 +130,31 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
         }
 
-        protected virtual AsyncReadOperation GetReadOperation()
+        private AsyncReadOperation GetReadOperation() =>
+            Interlocked.Exchange(ref _cachedAsyncReadOperation, null) ??
+            new AsyncReadOperation(this);
+
+        private AsyncWriteOperation GetWriteOperation() =>
+            Interlocked.Exchange(ref _cachedAsyncWriteOperation, null) ??
+            new AsyncWriteOperation(this);
+
+        private AsyncFlushOperation GetFlushOperation() =>
+            Interlocked.Exchange(ref _cachedAsyncFlushOperation, null) ??
+            new AsyncFlushOperation(this);
+
+        private void ReturnOperation(AsyncReadOperation operation)
         {
-            return new AsyncReadOperation();
+            Volatile.Write(ref _cachedAsyncReadOperation, operation);
         }
 
-        protected virtual AsyncWriteOperation GetWriteOperation()
+        private void ReturnOperation(AsyncWriteOperation operation)
         {
-            return new AsyncWriteOperation();
+            Volatile.Write(ref _cachedAsyncWriteOperation, operation);
         }
 
-        protected virtual AsyncFlushOperation GetFlushOperation()
+        private void ReturnOperation(AsyncFlushOperation operation)
         {
-            return new AsyncFlushOperation();
+            Volatile.Write(ref _cachedAsyncFlushOperation, operation);
         }
     }
 }
