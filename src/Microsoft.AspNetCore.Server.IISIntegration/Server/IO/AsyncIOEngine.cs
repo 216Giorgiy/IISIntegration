@@ -90,8 +90,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public void NotifyCompletion(int hr, int bytes)
         {
-            AsyncIOOperation.IISAsyncContinuation continuation;
-            AsyncIOOperation.IISAsyncContinuation? nextContinuation = null;
+            AsyncIOOperation.AsyncContinuation continuation;
+            AsyncIOOperation.AsyncContinuation? nextContinuation = null;
 
             lock (this)
             {

@@ -263,11 +263,14 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             ReasonPhrase = ReasonPhrases.GetReasonPhrase(StatusCodes.Status101SwitchingProtocols);
             NativeMethods.HttpEnableWebsockets(_pInProcessHandler);
 
+            ProduceStart();
+
             // Upgrade async will cause the stream processing to go into duplex mode
             var socketIO = new WebSocketsAsyncIOEngine(_pInProcessHandler);
             await socketIO.Initialize();
             AsyncIO = socketIO;
 
+            StartProcessingRequestAndResponseBody();
             return new DuplexStream(RequestBody, ResponseBody);
         }
 

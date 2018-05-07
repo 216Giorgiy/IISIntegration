@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 throw new InvalidOperationException("Already initialized");
             }
 
-            _initializationFlush = new AsyncInitializeOperation();
+            _initializationFlush = GetInitializeOperation();
             _initializationFlush.Initialize(_handler);
             var continuation = _initializationFlush.Invoke();
 
@@ -50,7 +50,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             CheckInitialized();
 
-            var read = new WebSocketReadOperation();
+            var read = GetReadOperation();
             read.Initialize(_handler, memory);
             read.Invoke();
             return new ValueTask<int>(read, 0);
@@ -66,7 +66,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public ValueTask FlushAsync()
         {
-            // WebSockets auto flush
+            // WebSockets auto flushes
             return new ValueTask(Task.CompletedTask);
         }
 
@@ -86,7 +86,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             if (!_isInitialized)
             {
-                throw new InvalidOperationException("IO not initialized yet");
+                throw new InvalidOperationException("Socket IO not initialized yet");
             }
         }
 
@@ -94,9 +94,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             // TODO
         }
-
-
-
 
         private WebSocketReadOperation GetReadOperation() =>
             Interlocked.Exchange(ref _cachedWebSocketReadOperation, null) ??
@@ -110,19 +107,13 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             Interlocked.Exchange(ref _cachedAsyncInitializeOperation, null) ??
             new AsyncInitializeOperation(this);
 
-        private void ReturnOperation(AsyncInitializeOperation operation)
-        {
+        private void ReturnOperation(AsyncInitializeOperation operation) =>
             Volatile.Write(ref _cachedAsyncInitializeOperation, operation);
-        }
 
-        private void ReturnOperation(WebSocketWriteOperation operation)
-        {
+        private void ReturnOperation(WebSocketWriteOperation operation) =>
             Volatile.Write(ref _cachedWebSocketWriteOperation, operation);
-        }
 
-        private void ReturnOperation(WebSocketReadOperation operation)
-        {
+        private void ReturnOperation(WebSocketReadOperation operation) =>
             Volatile.Write(ref _cachedWebSocketReadOperation, operation);
-        }
     }
 }

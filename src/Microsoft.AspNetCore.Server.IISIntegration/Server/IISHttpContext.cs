@@ -203,7 +203,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 ThrowResponseAbortedException();
             }
 
-            await ProduceStart();
+            ProduceStart();
+            StartProcessingRequestAndResponseBody();
         }
 
         private void ThrowResponseAbortedException()
@@ -211,7 +212,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             throw new ObjectDisposedException("Unhandled application exception", _applicationException);
         }
 
-        private async Task ProduceStart()
+        private void ProduceStart()
         {
             if (_hasResponseStarted)
             {
@@ -221,10 +222,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _hasResponseStarted = true;
 
             SetResponseHeaders();
-
-            StartProcessingRequestAndResponseBody();
-
-            await AsyncIO.FlushAsync();
         }
 
         protected Task ProduceEnd()
