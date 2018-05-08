@@ -5,12 +5,13 @@ using System;
 using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.IISIntegration
 {
     internal partial class IISHttpContext
     {
+        private bool _wasUpgraded;
+
         /// <summary>
         /// Reads data from the Input pipe to the user.
         /// </summary>
@@ -110,6 +111,87 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         private async Task ConsumeAsync()
         {
             await StartBidirectionalStream();
+        }
+
+        private Task StartBidirectionalStream()
+        {
+            // IIS allows for websocket support and duplex channels only on Win8 and above
+            // This allows us to have two tasks for reading the request and writing the response
+            var readWebsocketTask = ReadBody();
+            var writeWebsocketTask = WriteBody();
+            return Task.WhenAll(readWebsocketTask, writeWebsocketTask);
+        }
+
+        private async Task ReadBody()
+        {
+            try
+            {
+                while (true)
+                {
+                    var memory = Input.Writer.GetMemory();
+
+                    var read = await AsyncIO.ReadAsync(memory);
+
+                    if (read == 0)
+                    {
+                        break;
+                    }
+
+                    Input.Writer.Advance(read);
+
+                    var result = await Input.Writer.FlushAsync();
+
+                    if (result.IsCompleted || result.IsCanceled)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Input.Writer.Complete(ex);
+            }
+            finally
+            {
+                Input.Writer.Complete();
+            }
+        }
+
+        private async Task WriteBody()
+        {
+            try
+            {
+                while (true)
+                {
+                    var result = await Output.Reader.ReadAsync();
+
+                    var buffer = result.Buffer;
+
+                    try
+                    {
+                        if (!buffer.IsEmpty)
+                        {
+                            await AsyncIO.WriteAsync(buffer);
+                        }
+                        else if (result.IsCompleted)
+                        {
+                            break;
+                        }
+                    }
+                    finally
+                    {
+                        Output.Reader.AdvanceTo(buffer.End);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Output.Reader.Complete(ex);
+            }
+            finally
+            {
+                Output.Reader.Complete();
+            }
         }
     }
 }
