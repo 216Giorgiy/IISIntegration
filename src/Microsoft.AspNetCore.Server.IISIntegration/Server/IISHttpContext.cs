@@ -438,17 +438,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         internal void OnAsyncCompletion(int hr, int bytes)
         {
             AsyncIO.NotifyCompletion(hr, bytes);
-
-            // Must acquire the _stateSync here as anytime we call complete, we need to hold the lock
-            // to avoid races with cancellation.
-            //Action continuation;
-            //lock (_stateSync)
-            //{
-            //    _reading = false;
-            //    continuation = _operation.GetCompletion(hr, cbBytes);
-            //}
-
-            //continuation?.Invoke();
         }
 
         private bool disposedValue = false; // To detect redundant calls
