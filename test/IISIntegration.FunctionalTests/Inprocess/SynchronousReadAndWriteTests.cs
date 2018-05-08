@@ -90,7 +90,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
                 await connection.Receive(
                     "HTTP/1.1 200 OK",
                     "");
-                await connection.ReadHeaders();
+                await connection.ReceiveHeaders();
 
                 foreach (var c in testString)
                 {
@@ -125,7 +125,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
                 await connection.Receive(
                     "HTTP/1.1 200 OK",
                     "");
-                await connection.ReadHeaders();
+                await connection.ReceiveHeaders();
 
                 foreach (var message in messages)
                 {

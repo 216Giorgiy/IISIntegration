@@ -91,29 +91,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 {
                     if (_processBodiesTask == null)
                     {
-                        _processBodiesTask = ConsumeAsync();
+                        var readWebsocketTask = ReadBody();
+                        var writeWebsocketTask = WriteBody();
+                        _processBodiesTask = Task.WhenAll(readWebsocketTask, writeWebsocketTask);
                     }
                 }
             }
-        }
-
-        // ConsumeAsync is called when either the first read or first write is done.
-        // There are two modes for reading and writing to the request/response bodies without upgrade.
-        // 1. Await all reads and try to read from the Output pipe
-        // 2. Done reading and await all writes.
-        // If the request is upgraded, we will start bidirectional streams for the input and output.
-        private async Task ConsumeAsync()
-        {
-            await StartBidirectionalStream();
-        }
-
-        private Task StartBidirectionalStream()
-        {
-            // IIS allows for websocket support and duplex channels only on Win8 and above
-            // This allows us to have two tasks for reading the request and writing the response
-            var readWebsocketTask = ReadBody();
-            var writeWebsocketTask = WriteBody();
-            return Task.WhenAll(readWebsocketTask, writeWebsocketTask);
         }
 
         private async Task ReadBody()
