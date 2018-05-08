@@ -79,12 +79,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
                 var request = $"POST /ReadAndWriteSlowConnection HTTP/1.0\r\n" +
                     $"Content-Length: {testString.Length}\r\n" +
                     "Host: " + "localhost\r\n" +
-                    "\r\n";
+                    "\r\n" + testString;
 
                 foreach (var c in request)
                 {
                     await connection.Send(c.ToString());
-                    Thread.Sleep(100);
+                    await Task.Delay(10);
                 }
 
                 await connection.Receive(
@@ -92,10 +92,13 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
                     "");
                 await connection.ReceiveHeaders();
 
-                foreach (var c in testString)
+                for (int i = 0; i < 100; i++)
                 {
-                    await connection.Receive(c.ToString());
-                    Thread.Sleep(100);
+                    foreach (var c in testString)
+                    {
+                        await connection.Receive(c.ToString());
+                    }
+                    await Task.Delay(10);
                 }
                 await connection.WaitForConnectionClose();
             }
