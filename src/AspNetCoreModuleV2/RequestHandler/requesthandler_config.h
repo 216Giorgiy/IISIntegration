@@ -61,7 +61,7 @@ public:
     HRESULT
     CreateRequestHandlerConfig(
         _In_  IHttpServer             *pHttpServer,
-        _In_  IHttpApplication            *pHttpContext,
+        _In_  IHttpContext            *pHttpContext,
         _In_  HANDLE                   hEventLog,
         _Out_ REQUESTHANDLER_CONFIG  **ppAspNetCoreConfig
     );
@@ -283,7 +283,7 @@ private:
     HRESULT
     Populate(
         IHttpServer      *pHttpServer,
-        IHttpApplication *pHttpContext
+        IHttpContext     *pHttpContext
     );
 
     mutable LONG           m_cRefs;

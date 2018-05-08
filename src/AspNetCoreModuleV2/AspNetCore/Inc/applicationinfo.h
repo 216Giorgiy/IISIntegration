@@ -10,7 +10,7 @@ typedef
 HRESULT
 (WINAPI * PFN_ASPNETCORE_CREATE_APPLICATION)(
     _In_  IHttpServer        *pServer,
-    _In_  IHttpApplication   *pHttpApplication,
+    _In_  IHttpContext   *pHttpContext,
     _Out_ IAPPLICATION      **pApplication
     );
 

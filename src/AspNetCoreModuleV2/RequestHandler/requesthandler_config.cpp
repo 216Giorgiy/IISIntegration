@@ -24,7 +24,7 @@ REQUESTHANDLER_CONFIG::~REQUESTHANDLER_CONFIG()
 HRESULT
 REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     _In_  IHttpServer             *pHttpServer,
-    _In_  IHttpApplication        *pHttpApplication,
+    _In_  IHttpContext            *pHttpContext,
     _In_  HANDLE                   hEventLog,
     _Out_ REQUESTHANDLER_CONFIG  **ppAspNetCoreConfig
 )
@@ -50,7 +50,7 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
         goto Finished;
     }
 
-    hr = pRequestHandlerConfig->Populate(pHttpServer, pHttpApplication);
+    hr = pRequestHandlerConfig->Populate(pHttpServer, pHttpContext);
     if (FAILED(hr))
     {
         goto Finished;
@@ -83,7 +83,7 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
         "REQUESTHANDLER_CONFIG::GetConfig, set config to ModuleContext");
     // set appliction info here instead of inside Populate()
     // as the destructor will delete the backend process
-    hr = pRequestHandlerConfig->QueryApplicationPath()->Copy(pHttpApplication->GetApplicationId());
+    hr = pRequestHandlerConfig->QueryApplicationPath()->Copy(pHttpContext->GetApplication()->GetApplicationId());
     if (FAILED(hr))
     {
         goto Finished;
@@ -105,8 +105,8 @@ Finished:
 
 HRESULT
 REQUESTHANDLER_CONFIG::Populate(
-    IHttpServer        *pHttpServer,
-    IHttpApplication   *pHttpApplication
+    IHttpServer    *pHttpServer,
+    IHttpContext   *pHttpContext
 )
 {
     STACK_STRU(strHostingModel, 300);
@@ -148,13 +148,13 @@ REQUESTHANDLER_CONFIG::Populate(
     }
 
     pAdminManager = pHttpServer->GetAdminManager();
-    hr = m_struConfigPath.Copy(pHttpApplication->GetAppConfigPath());
+    hr = m_struConfigPath.Copy(pHttpContext->GetApplication()->GetAppConfigPath());
     if (FAILED(hr))
     {
         goto Finished;
     }
 
-    hr = m_struApplicationPhysicalPath.Copy(pHttpApplication->GetApplicationPhysicalPath());
+    hr = m_struApplicationPhysicalPath.Copy(pHttpContext->GetApplication()->GetApplicationPhysicalPath());
     if (FAILED(hr))
     {
         goto Finished;
@@ -265,17 +265,17 @@ REQUESTHANDLER_CONFIG::Populate(
     // TODO
     // Even though the applicationhost.config file contains the websocket element,
     // the websocket module may still not be enabled.
-    //PCWSTR pszTempWebsocketValue;
-    //DWORD cbLength;
-    //hr = pHttpContext->GetServerVariable("WEBSOCKET_VERSION", &pszTempWebsocketValue, &cbLength);
-    //if (FAILED(hr))
-    //{
-    //    m_fWebSocketEnabled = FALSE;
-    //}
-    //else
-    //{
-    m_fWebSocketEnabled = TRUE;
-    //}
+    PCWSTR pszTempWebsocketValue;
+    DWORD cbLength;
+    hr = pHttpContext->GetServerVariable("WEBSOCKET_VERSION", &pszTempWebsocketValue, &cbLength);
+    if (FAILED(hr))
+    {
+        m_fWebSocketEnabled = FALSE;
+    }
+    else
+    {
+        m_fWebSocketEnabled = TRUE;
+    }
 
     bstrAspNetCoreSection = SysAllocString(CS_ASPNETCORE_SECTION);
     if (bstrAspNetCoreSection == NULL)

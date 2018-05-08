@@ -224,7 +224,7 @@ APPLICATION_INFO::EnsureApplicationCreated(
                 goto Finished;
             }
 
-            hr = m_pfnAspNetCoreCreateApplication(m_pServer, pHttpContext->GetApplication(), &pApplication);
+            hr = m_pfnAspNetCoreCreateApplication(m_pServer, pHttpContext, &pApplication);
             if (FAILED(hr))
             {
                 goto Finished;
