@@ -116,7 +116,7 @@ Finished:
         // Managed layer may block the shutdown and lead to shutdown timeout
         // Assumption: only one inprocess application is hosted.
         // Call process exit to force shutdown
-        //
+        // 
         exit(hr);
     }
 }
