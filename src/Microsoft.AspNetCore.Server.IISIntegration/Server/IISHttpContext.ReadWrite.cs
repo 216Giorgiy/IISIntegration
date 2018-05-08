@@ -22,7 +22,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             if (!_hasResponseStarted)
             {
-                StartProcessingRequestAndResponseBody();
+                await InitializeResponseAwaited();
             }
 
             while (true)
@@ -56,15 +56,15 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         /// <param name="memory"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        internal async Task WriteAsync(ReadOnlyMemory<byte> memory, CancellationToken cancellationToken = default(CancellationToken))
+        internal Task WriteAsync(ReadOnlyMemory<byte> memory, CancellationToken cancellationToken = default(CancellationToken))
         {
-            // Want to keep exceptions consistent,
-            if (!_hasResponseStarted)
+            async Task WriteFirstAsync()
             {
                 await InitializeResponseAwaited();
+                await Output.WriteAsync(memory, cancellationToken);
             }
 
-            await Output.WriteAsync(memory, cancellationToken);
+            return !_hasResponseStarted ? WriteFirstAsync() : Output.WriteAsync(memory, cancellationToken);
         }
 
         /// <summary>
@@ -72,15 +72,15 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        internal async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
+        internal Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            // Want to keep exceptions consistent,
-            if (!_hasResponseStarted)
+            async Task FlushFirstAsync()
             {
                 await InitializeResponseAwaited();
+                await Output.FlushAsync(cancellationToken);
             }
 
-            await AsyncIO.FlushAsync();
+            return !_hasResponseStarted ? FlushFirstAsync() : Output.FlushAsync(cancellationToken);
         }
 
         private void StartProcessingRequestAndResponseBody()
@@ -91,12 +91,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 {
                     if (_processBodiesTask == null)
                     {
-                        // If at this point request was not upgraded just start a normal IO engine
-                        if (AsyncIO == null)
-                        {
-                            AsyncIO = new AsyncIOEngine(_pInProcessHandler);
-                        }
-
                         _processBodiesTask = ConsumeAsync();
                     }
                 }
@@ -131,6 +125,11 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                     var memory = Input.Writer.GetMemory();
 
                     var read = await AsyncIO.ReadAsync(memory);
+
+                    if (read == -1)
+                    {
+                        continue;
+                    }
 
                     if (read == 0)
                     {
@@ -173,7 +172,13 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                         {
                             await AsyncIO.WriteAsync(buffer);
                         }
-                        else if (result.IsCompleted)
+
+                        if (result.IsCanceled)
+                        {
+                            await AsyncIO.FlushAsync();
+                        }
+
+                        if (result.IsCompleted)
                         {
                             break;
                         }

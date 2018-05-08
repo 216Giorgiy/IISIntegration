@@ -189,13 +189,15 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
         }
 
-        internal IISHttpServer Server
-        {
-            get { return _server; }
-        }
+        internal IISHttpServer Server => _server;
 
         private async Task InitializeResponseAwaited()
         {
+            if (_hasResponseStarted)
+            {
+                return;
+            }
+
             await FireOnStarting();
 
             if (_applicationException != null)
@@ -203,25 +205,29 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 ThrowResponseAbortedException();
             }
 
-            ProduceStart();
+            _hasResponseStarted = true;
+
+            SetResponseHeaders();
+
+            await StartIO();
+
             StartProcessingRequestAndResponseBody();
+        }
+
+        private ValueTask StartIO()
+        {
+            // If at this point request was not upgraded just start a normal IO engine
+            if (AsyncIO == null)
+            {
+                AsyncIO = new AsyncIOEngine(_pInProcessHandler);
+            }
+
+            return AsyncIO.FlushAsync();
         }
 
         private void ThrowResponseAbortedException()
         {
             throw new ObjectDisposedException("Unhandled application exception", _applicationException);
-        }
-
-        private void ProduceStart()
-        {
-            if (_hasResponseStarted)
-            {
-                return;
-            }
-
-            _hasResponseStarted = true;
-
-            SetResponseHeaders();
         }
 
         protected Task ProduceEnd()
@@ -268,9 +274,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _hasResponseStarted = true;
 
             SetResponseHeaders();
-            StartProcessingRequestAndResponseBody();
 
-            await AsyncIO.FlushAsync();
+            await StartIO();
+
+            StartProcessingRequestAndResponseBody();
         }
 
         public unsafe void SetResponseHeaders()

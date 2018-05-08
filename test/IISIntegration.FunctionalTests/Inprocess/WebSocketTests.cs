@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Testing.xunit;
@@ -21,26 +22,50 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
             _webSocketUri = fixture.BaseUri.Replace("http:", "ws:");
         }
 
+
+        [ConditionalFact]
+        public async Task OnStartedCalledForWebSocket()
+        {
+            var cws = new ClientWebSocket();
+            await cws.ConnectAsync(new Uri(_webSocketUri + "WebSocketLifetimeEvents"), default);
+
+            await ReceiveMessage(cws, "OnStarting");
+            await ReceiveMessage(cws, "Upgraded");
+        }
+
+
         [ConditionalFact]
         public async Task CanSendAndReceieveData()
         {
-            var data = Enumerable.Range(0, 10 * 1024 * 1024).Select(i => (byte)i).ToArray();
-            var received = new byte[data.Length];
-
             var cws = new ClientWebSocket();
             await cws.ConnectAsync(new Uri(_webSocketUri + "WebSocketEcho"), default);
-            await cws.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, default);
+
+            for (int i = 0; i < 1000; i++)
+            {
+                var mesage = i.ToString();
+                await SendMessage(cws, mesage);
+                await ReceiveMessage(cws, mesage);
+            }
+        }
+
+        private async Task SendMessage(ClientWebSocket webSocket, string message)
+        {
+            await webSocket.SendAsync(new ArraySegment<byte>(Encoding.ASCII.GetBytes(message)), WebSocketMessageType.Text, true, default);
+        }
+
+        private async Task ReceiveMessage(ClientWebSocket webSocket,  string expectedMessage)
+        {
+            var received = new byte[expectedMessage.Length];
 
             var offset = 0;
             WebSocketReceiveResult result;
             do
             {
-                result = await cws.ReceiveAsync(new ArraySegment<byte>(received, offset, received.Length - offset), default);
+                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(received, offset, received.Length - offset), default);
                 offset += result.Count;
             } while (!result.EndOfMessage);
 
-            Assert.Equal(data.Length, offset);
-            Assert.Equal(data, received);
+            Assert.Equal(expectedMessage, Encoding.ASCII.GetString(received));
         }
     }
 }

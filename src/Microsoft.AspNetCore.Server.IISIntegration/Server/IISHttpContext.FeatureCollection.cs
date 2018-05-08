@@ -236,7 +236,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         async Task<Stream> IHttpUpgradeFeature.UpgradeAsync()
         {
-
             // TODO fix these exceptions strings
             if (!((IHttpUpgradeFeature)this).IsUpgradableRequest)
             {
@@ -261,16 +260,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
             StatusCode = StatusCodes.Status101SwitchingProtocols;
             ReasonPhrase = ReasonPhrases.GetReasonPhrase(StatusCodes.Status101SwitchingProtocols);
-            NativeMethods.HttpEnableWebsockets(_pInProcessHandler);
-
-            ProduceStart();
 
             // Upgrade async will cause the stream processing to go into duplex mode
-            var socketIO = new WebSocketsAsyncIOEngine(_pInProcessHandler);
-            await socketIO.Initialize();
-            AsyncIO = socketIO;
+            AsyncIO = new WebSocketsAsyncIOEngine(_pInProcessHandler);
 
-            StartProcessingRequestAndResponseBody();
+            await InitializeResponseAwaited();
+
             return new DuplexStream(RequestBody, ResponseBody);
         }
 

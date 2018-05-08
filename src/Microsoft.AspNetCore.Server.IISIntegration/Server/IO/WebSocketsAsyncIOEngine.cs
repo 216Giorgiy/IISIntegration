@@ -27,25 +27,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _handler = handler;
         }
 
-        public ValueTask Initialize()
-        {
-            if (_isInitialized)
-            {
-                throw new InvalidOperationException("Already initialized");
-            }
-
-            _initializationFlush = GetInitializeOperation();
-            _initializationFlush.Initialize(_handler);
-            var continuation = _initializationFlush.Invoke();
-
-            if (continuation != null)
-            {
-                _isInitialized = true;
-            }
-
-            return new ValueTask(_initializationFlush, 0);
-        }
-
         public ValueTask<int> ReadAsync(Memory<byte> memory)
         {
             CheckInitialized();
@@ -66,8 +47,23 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public ValueTask FlushAsync()
         {
-            // WebSockets auto flushes
-            return new ValueTask(Task.CompletedTask);
+            if (_isInitialized)
+            {
+                return new ValueTask(Task.CompletedTask);
+            }
+
+            NativeMethods.HttpEnableWebsockets(_handler);
+
+            _initializationFlush = GetInitializeOperation();
+            _initializationFlush.Initialize(_handler);
+            var continuation = _initializationFlush.Invoke();
+
+            if (continuation != null)
+            {
+                _isInitialized = true;
+            }
+
+            return new ValueTask(_initializationFlush, 0);
         }
 
         public void NotifyCompletion(int hr, int bytes)

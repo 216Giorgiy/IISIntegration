@@ -80,7 +80,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public abstract bool InvokeOperation();
 
-
         public AsyncContinuation NotifyCompletion(int hr, int bytes)
         {
             SetResult(hr, bytes);
@@ -90,8 +89,16 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         protected void SetResult(int hr, int bytes)
         {
             _completed = true;
-            _result = bytes;
-            _exception = Marshal.GetExceptionForHR(hr);
+
+            if (hr != IISServerConstants.HResultCancelIO)
+            {
+                _result = bytes;
+                _exception = Marshal.GetExceptionForHR(hr);
+            }
+            else
+            {
+                _result = -1;
+            }
 
             FreeOperationResources(hr, bytes);
         }

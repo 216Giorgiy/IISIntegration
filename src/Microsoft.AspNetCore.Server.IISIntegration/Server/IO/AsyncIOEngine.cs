@@ -85,6 +85,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             var flush = GetFlushOperation();
             flush.Initialize(_handler);
             Run(flush);
+            CancelPendingRead();
             return new ValueTask(flush, 0);
         }
 

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -373,14 +374,30 @@ namespace IISTestSite
 
         private void ReadAndWriteEcho(IApplicationBuilder app)
         {
-            app.Run(async context =>
-            {
+            app.Run(async context => {
                 var readBuffer = new byte[4096];
                 var result = await context.Request.Body.ReadAsync(readBuffer, 0, readBuffer.Length);
                 while (result != 0)
                 {
                     await context.Response.WriteAsync(Encoding.UTF8.GetString(readBuffer, 0, result));
                     result = await context.Request.Body.ReadAsync(readBuffer, 0, readBuffer.Length);
+                }
+            });
+        }
+
+        private void ReadAndWriteEchoLines(IApplicationBuilder app)
+        {
+            app.Run(async context => {
+                var reader = new StreamReader(context.Request.Body);
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (line == "")
+                    {
+                        return;
+                    }
+                    await context.Response.WriteAsync(line + Environment.NewLine);
+                    await context.Response.Body.FlushAsync();
                 }
             });
         }
@@ -433,26 +450,59 @@ namespace IISTestSite
         {
             app.Run(async context =>
             {
-                var upgradeFeature = context.Features.Get<IHttpUpgradeFeature>();
-
-                // Generate WebSocket response headers
-                string key = context.Request.Headers[Constants.Headers.SecWebSocketKey].ToString();
-                var responseHeaders = HandshakeHelpers.GenerateResponseHeaders(key);
-                foreach (var headerPair in responseHeaders)
-                {
-                    context.Response.Headers[headerPair.Key] = headerPair.Value;
-                }
-
-                // Upgrade the connection
-                Stream opaqueTransport = await upgradeFeature.UpgradeAsync();
-
-                // Get the WebSocket object
-                var ws = WebSocketProtocol.CreateFromStream(opaqueTransport, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.FromMinutes(2));
+                var ws = await Upgrade(context);
 
                 var appLifetime = app.ApplicationServices.GetRequiredService<IApplicationLifetime>();
 
                 await Echo(ws, appLifetime.ApplicationStopping);
             });
+        }
+
+        private void WebSocketLifetimeEvents(IApplicationBuilder app)
+        {
+            app.Run(async context => {
+
+                var messages = new List<string>();
+
+                context.Response.OnStarting(() => {
+                    context.Response.Headers["custom-header"] = "value";
+                    messages.Add("OnStarting");
+                    return Task.CompletedTask;
+                });
+
+                var ws = await Upgrade(context);
+                messages.Add("Upgraded");
+
+                await SendMessages(ws, messages.ToArray());
+            });
+        }
+
+        private static async Task SendMessages(WebSocket webSocket, params string[] messages)
+        {
+            foreach (var message in messages)
+            {
+                await webSocket.SendAsync(new ArraySegment<byte>(Encoding.ASCII.GetBytes(message)), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
+        }
+
+        private static async Task<WebSocket> Upgrade(HttpContext context)
+        {
+            var upgradeFeature = context.Features.Get<IHttpUpgradeFeature>();
+
+            // Generate WebSocket response headers
+            string key = context.Request.Headers[Constants.Headers.SecWebSocketKey].ToString();
+            var responseHeaders = HandshakeHelpers.GenerateResponseHeaders(key);
+            foreach (var headerPair in responseHeaders)
+            {
+                context.Response.Headers[headerPair.Key] = headerPair.Value;
+            }
+
+            // Upgrade the connection
+            Stream opaqueTransport = await upgradeFeature.UpgradeAsync();
+
+            // Get the WebSocket object
+            var ws = WebSocketProtocol.CreateFromStream(opaqueTransport, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.FromMinutes(2));
+            return ws;
         }
 
         private async Task Echo(WebSocket webSocket, CancellationToken token)

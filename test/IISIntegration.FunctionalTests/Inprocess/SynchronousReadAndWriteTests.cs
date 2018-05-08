@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -70,55 +71,70 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
         }
 
         [ConditionalFact]
-        public void ReadAndWriteSlowConnection()
+        public async Task ReadAndWriteSlowConnection()
         {
-            var ipHostEntry = Dns.GetHostEntry(_fixture.Client.BaseAddress.Host);
-
-            using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            using (var connection = _fixture.CreateTestConnection())
             {
-                foreach (var hostEntry in ipHostEntry.AddressList)
-                {
-                    try
-                    {
-                        socket.Connect(hostEntry, _fixture.Client.BaseAddress.Port);
-                        break;
-                    }
-                    catch (Exception)
-                    {
-                        // Exceptions can be thrown based on ipv6 support
-                    }
-                }
-
-                Assert.True(socket.Connected);
-
                 var testString = "hello world";
                 var request = $"POST /ReadAndWriteSlowConnection HTTP/1.0\r\n" +
                     $"Content-Length: {testString.Length}\r\n" +
                     "Host: " + "localhost\r\n" +
                     "\r\n";
-                var bytes = 0;
-                var requestStringBytes = Encoding.ASCII.GetBytes(request);
-                var testStringBytes = Encoding.ASCII.GetBytes(testString);
 
-                while ((bytes += socket.Send(requestStringBytes, bytes, 1, SocketFlags.None)) < requestStringBytes.Length)
+                foreach (var c in request)
                 {
-                }
-
-                bytes = 0;
-                while ((bytes += socket.Send(testStringBytes, bytes, 1, SocketFlags.None)) < testStringBytes.Length)
-                {
+                    await connection.Send(c.ToString());
                     Thread.Sleep(100);
                 }
 
-                var stringBuilder = new StringBuilder();
-                var buffer = new byte[4096];
-                int size;
-                while ((size = socket.Receive(buffer, buffer.Length, SocketFlags.None)) != 0)
+                await connection.Receive(
+                    "HTTP/1.1 200 OK",
+                    "");
+                await connection.ReadHeaders();
+
+                foreach (var c in testString)
                 {
-                    stringBuilder.Append(Encoding.ASCII.GetString(buffer, 0, size));
+                    await connection.Receive(c.ToString());
+                    Thread.Sleep(100);
+                }
+                await connection.WaitForConnectionClose();
+            }
+        }
+
+        [ConditionalFact]
+        public async Task ReadAndWriteInterleaved()
+        {
+            using (var connection = _fixture.CreateTestConnection())
+            {
+                var requestLength = 0;
+                var messages = new List<string>();
+                for (var i = 1; i < 100; i++)
+                {
+                    var message = i + Environment.NewLine;
+                    requestLength += message.Length;
+                    messages.Add(message);
                 }
 
-                Assert.Contains(new StringBuilder().Insert(0, "hello world", 100).ToString(), stringBuilder.ToString());
+                await connection.Send(
+                    "POST /ReadAndWriteEchoLines HTTP/1.0",
+                    $"Content-Length: {requestLength}",
+                    "Host: localhost",
+                    "",
+                    "");
+
+                await connection.Receive(
+                    "HTTP/1.1 200 OK",
+                    "");
+                await connection.ReadHeaders();
+
+                foreach (var message in messages)
+                {
+                    await connection.Send(message);
+                    await connection.Receive(message);
+                }
+
+                await connection.Send("\r\n");
+                await connection.WaitForConnectionClose();
             }
         }
     }
