@@ -17,7 +17,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
                 NativeMethods.HttpGetCompletionInfo(completionInfo, out var cbBytes, out var hr);
 
-                var continuation = context.NotifyCompletion(hr, cbBytes);
+                var continuation = context.Complete(hr, cbBytes);
 
                 continuation.Invoke();
 

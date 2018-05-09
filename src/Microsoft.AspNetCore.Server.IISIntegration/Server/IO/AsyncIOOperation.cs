@@ -2,7 +2,8 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Runtime.InteropServices;
+using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks.Sources;
 
@@ -10,17 +11,17 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 {
     internal abstract class AsyncIOOperation: IValueTaskSource<int>, IValueTaskSource
     {
+        private static readonly Action<object> CallbackCompleted = _ => { Debug.Assert(false, "Should not be invoked"); };
+
         private Action<object> _continuation;
         private object _state;
         private int _result;
-
-        private bool _completed;
 
         private Exception _exception;
 
         public ValueTaskSourceStatus GetStatus(short token)
         {
-            if (!_completed)
+            if (ReferenceEquals(Volatile.Read(ref _continuation), CallbackCompleted))
             {
                 return ValueTaskSourceStatus.Pending;
             }
@@ -30,19 +31,29 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public void OnCompleted(Action<object> continuation, object state, short token, ValueTaskSourceOnCompletedFlags flags)
         {
-            if (_completed)
+            if (_state != null)
             {
-                continuation(state);
-                return;
+                ThrowMultipleContinuations();
             }
 
-            if (_continuation != null)
-            {
-                throw new InvalidOperationException();
-            }
-
-            _continuation = continuation;
             _state = state;
+
+            var previousContinuation = Interlocked.CompareExchange(ref _continuation, continuation, null);
+
+            if (previousContinuation != null)
+            {
+                if (!ReferenceEquals(previousContinuation, CallbackCompleted))
+                {
+                    ThrowMultipleContinuations();
+                }
+
+                new AsyncContinuation(continuation, state).Invoke();
+            }
+        }
+
+        private static void ThrowMultipleContinuations()
+        {
+            throw new InvalidOperationException("Multiple awaiters are not allowed");
         }
 
         void IValueTaskSource.GetResult(short token)
@@ -83,24 +94,34 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public abstract bool InvokeOperation();
 
-        public AsyncContinuation NotifyCompletion(int hr, int bytes)
+        public AsyncContinuation Complete(int hr, int bytes)
         {
             SetResult(hr, bytes);
-            return new AsyncContinuation(_continuation, _state);
+
+            var continuation = Interlocked.CompareExchange(ref _continuation, CallbackCompleted, null);
+            if (continuation != null)
+            {
+                var state = _state;
+                return new AsyncContinuation(continuation, state);
+            }
+
+            return default;
         }
 
         protected void SetResult(int hr, int bytes)
         {
-            _completed = true;
-
-            if (hr != IISServerConstants.HResultCancelIO)
+            if (hr != NativeMethods.HR_CANCEL_IO)
             {
                 _result = bytes;
-                _exception = Marshal.GetExceptionForHR(hr);
+                if (hr != NativeMethods.HR_OK)
+                {
+                    _exception = new IOException("IO exception occurred", hr);
+                }
             }
             else
             {
                 _result = -1;
+                _exception = null;
             }
 
             FreeOperationResources(hr, bytes);
@@ -110,7 +131,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         protected virtual void ResetOperation()
         {
-            _completed = false;
             _exception = null;
             _result = int.MinValue;
             _state = null;

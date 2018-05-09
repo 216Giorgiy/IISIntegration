@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
                 NativeMethods.HttpGetCompletionInfo(completionInfo, out var cbBytes, out var hr);
 
-                var continuation = context.NotifyCompletion(hr, cbBytes);
+                var continuation = context.Complete(hr, cbBytes);
                 continuation.Invoke();
 
                 return NativeMethods.REQUEST_NOTIFICATION_STATUS.RQ_NOTIFICATION_PENDING;
@@ -33,7 +33,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 _thisHandle = GCHandle.Alloc(this);
             }
 
-            internal override unsafe int WriteChunks(IntPtr requestHandler, int chunkCount, HttpApiTypes.HTTP_DATA_CHUNK* dataChunks, out bool completionExpected)
+            protected override unsafe int WriteChunks(IntPtr requestHandler, int chunkCount, HttpApiTypes.HTTP_DATA_CHUNK* dataChunks, out bool completionExpected)
             {
                 return NativeMethods.HttpWebsocketsWriteBytes(requestHandler, dataChunks, chunkCount, WriteCallback, (IntPtr)_thisHandle, out completionExpected);
             }

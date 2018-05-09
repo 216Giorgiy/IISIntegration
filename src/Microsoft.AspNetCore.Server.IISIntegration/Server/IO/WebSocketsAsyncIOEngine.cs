@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
     {
         private readonly IntPtr _handler;
 
-        private bool _isInitialized = false;
+        private bool _isInitialized;
 
         private AsyncInitializeOperation _initializationFlush;
 
@@ -54,27 +54,37 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
             NativeMethods.HttpEnableWebsockets(_handler);
 
-            _initializationFlush = GetInitializeOperation();
-            _initializationFlush.Initialize(_handler);
-            var continuation = _initializationFlush.Invoke();
+            var init = GetInitializeOperation();
+            init.Initialize(_handler);
+
+            var continuation = init.Invoke();
 
             if (continuation != null)
             {
                 _isInitialized = true;
             }
+            else
+            {
+                _initializationFlush = init;
+            }
 
-            return new ValueTask(_initializationFlush, 0);
+            return new ValueTask(init, 0);
         }
 
         public void NotifyCompletion(int hr, int bytes)
         {
             _isInitialized = true;
-            if (_initializationFlush == null)
+
+            var init = _initializationFlush;
+            if (init == null)
             {
                 throw new InvalidOperationException("Unexpected completion for WebSocket operation");
             }
 
-            var continuation = _initializationFlush.NotifyCompletion(hr, bytes);
+            var continuation = init.Complete(hr, bytes);
+
+            _initializationFlush = null;
+
             continuation.Invoke();
         }
 
@@ -86,9 +96,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
         }
 
-        public void Stop()
+        public void Dispose()
         {
-            // TODO
         }
 
         private WebSocketReadOperation GetReadOperation() =>

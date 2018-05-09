@@ -10,8 +10,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 {
     internal partial class IISHttpContext
     {
-        private bool _wasUpgraded;
-
         /// <summary>
         /// Reads data from the Input pipe to the user.
         /// </summary>
@@ -91,9 +89,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 {
                     if (_processBodiesTask == null)
                     {
-                        var readWebsocketTask = ReadBody();
-                        var writeWebsocketTask = WriteBody();
-                        _processBodiesTask = Task.WhenAll(readWebsocketTask, writeWebsocketTask);
+                        _processBodiesTask = Task.WhenAll(ReadBody(), WriteBody());
                     }
                 }
             }

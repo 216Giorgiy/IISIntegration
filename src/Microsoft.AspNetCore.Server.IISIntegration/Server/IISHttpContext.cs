@@ -40,7 +40,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         private string _reasonPhrase;
         private readonly object _onStartingSync = new object();
         private readonly object _onCompletedSync = new object();
-        private readonly object _stateSync = new object();
         protected readonly object _createReadWriteBodySync = new object();
 
         protected Stack<KeyValuePair<Func<object, Task>, object>> _onStarting;
@@ -53,6 +52,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         private GCHandle _thisHandle;
         protected Task _processBodiesTask;
 
+        private bool _wasUpgraded;
         protected int _requestAborted;
 
         private const string NtlmString = "NTLM";
@@ -193,10 +193,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private async Task InitializeResponseAwaited()
         {
-            if (_hasResponseStarted)
-            {
-                return;
-            }
+            Debug.Assert(!_hasResponseStarted);
 
             await FireOnStarting();
 
@@ -424,7 +421,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public void PostCompletion(NativeMethods.REQUEST_NOTIFICATION_STATUS requestNotificationStatus)
         {
-            AsyncIO.Stop();
+            AsyncIO.Dispose();
 
             NativeMethods.HttpSetCompletionStatus(_pInProcessHandler, requestNotificationStatus);
             NativeMethods.HttpPostCompletion(_pInProcessHandler, 0);

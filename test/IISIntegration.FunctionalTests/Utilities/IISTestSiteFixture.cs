@@ -31,7 +31,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
             _deployer = ApplicationDeployerFactory.Create(deploymentParameters, NullLoggerFactory.Instance);
             DeploymentResult = _deployer.DeployAsync().Result;
             Client = DeploymentResult.HttpClient;
-            Client.GetAsync("/").GetAwaiter().GetResult();
             BaseUri = DeploymentResult.ApplicationBaseUri;
             ShutdownToken = DeploymentResult.HostShutdownToken;
         }

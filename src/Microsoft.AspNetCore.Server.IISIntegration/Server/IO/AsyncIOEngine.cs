@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             {
                 Debug.Assert(_runningOperation != null);
 
-                continuation = _runningOperation.NotifyCompletion(hr, bytes);
+                continuation = _runningOperation.Complete(hr, bytes);
 
                 var next = _nextOperation;
                 _nextOperation = null;
@@ -123,13 +123,13 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             nextContinuation?.Invoke();
         }
 
-        public void Stop()
+        public void Dispose()
         {
             lock (this)
             {
                 if (_runningOperation != null || _nextOperation != null)
                 {
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("Async IO operation is in progress");
                 }
             }
         }

@@ -9,8 +9,9 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 {
     internal static class NativeMethods
     {
-        private const int HR_NOT_FOUND = unchecked((int)0x80070490);
-        private const int HR_OK = 0;
+        internal const int HR_OK = 0;
+        internal const int HR_NOT_FOUND = unchecked((int)0x80070490);
+        internal const int HR_CANCEL_IO = -2147023901;
 
         private const string KERNEL32 = "kernel32.dll";
 

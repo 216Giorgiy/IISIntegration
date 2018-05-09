@@ -100,9 +100,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             var currentChunk = 0;
 
-            // REVIEW: We don't really need this list since the memory is already pinned with the default pool,
-            // but shouldn't assume the pool implementation right now. Unfortunately, this causes a heap allocation...
-            _handles = new MemoryHandle[nChunks];
+            if (_handles == null || _handles.Length < nChunks)
+            {
+                _handles = new MemoryHandle[nChunks];
+            }
 
             foreach (var readOnlyMemory in buffer)
             {
@@ -120,6 +121,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             return WriteChunks(_requestHandler, nChunks, pDataChunks, out fCompletionExpected);
         }
 
-        internal abstract unsafe int WriteChunks(IntPtr requestHandler, int chunkCount, HttpApiTypes.HTTP_DATA_CHUNK* dataChunks, out bool completionExpected);
+        protected abstract unsafe int WriteChunks(IntPtr requestHandler, int chunkCount, HttpApiTypes.HTTP_DATA_CHUNK* dataChunks, out bool completionExpected);
     }
 }
