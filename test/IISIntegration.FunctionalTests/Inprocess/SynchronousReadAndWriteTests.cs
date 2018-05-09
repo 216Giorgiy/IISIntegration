@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Testing.xunit;
@@ -64,6 +65,18 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
             var responseText = await response.Content.ReadAsStringAsync();
 
             Assert.Equal(requestBody.Length * 2, responseText.Length);
+        }
+
+        [ConditionalFact]
+        public async Task ReadSetHeaderWrite()
+        {
+            var body = new string('a', 100000);
+            var content = new StringContent(body);
+            var response = await _fixture.Client.PostAsync("SetHeaderFromBody", content);
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            Assert.Equal(body, response.Headers.GetValues("BodyAsString").Single());
+            Assert.Equal(body, responseText);
         }
 
         [ConditionalFact]

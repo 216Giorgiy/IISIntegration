@@ -18,9 +18,9 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         /// <returns></returns>
         internal async Task<int> ReadAsync(Memory<byte> memory, CancellationToken cancellationToken)
         {
-            if (!HasResponseStarted)
+            if (!_hasRequestReadingStarted)
             {
-                await InitializeResponseAwaited();
+                InitializeRequest();
             }
 
             while (true)
@@ -58,7 +58,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             async Task WriteFirstAsync()
             {
-                await InitializeResponseAwaited();
+                await ProduceStart();
                 await Output.WriteAsync(memory, cancellationToken);
             }
 
@@ -74,25 +74,11 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             async Task FlushFirstAsync()
             {
-                await InitializeResponseAwaited();
+                await ProduceStart();
                 await Output.FlushAsync(cancellationToken);
             }
 
             return !HasResponseStarted ? FlushFirstAsync() : Output.FlushAsync(cancellationToken);
-        }
-
-        private void StartProcessingRequestAndResponseBody()
-        {
-            if (_processBodiesTask == null)
-            {
-                lock (_createReadWriteBodySync)
-                {
-                    if (_processBodiesTask == null)
-                    {
-                        _processBodiesTask = Task.WhenAll(ReadBody(), WriteBody());
-                    }
-                }
-            }
         }
 
         private async Task ReadBody()

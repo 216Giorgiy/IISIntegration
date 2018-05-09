@@ -34,7 +34,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private readonly IISOptions _options;
 
-        private volatile int _hasResponseStarted;
+        private volatile bool _hasResponseStarted;
+        private volatile bool _hasRequestReadingStarted;
 
         private int _statusCode;
         private string _reasonPhrase;
@@ -50,7 +51,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         private readonly IISHttpServer _server;
 
         private GCHandle _thisHandle;
-        protected Task _processBodiesTask;
+        protected Task _readBodyTask;
+        protected Task _writeBodyTask;
 
         private bool _wasUpgraded;
         protected int _requestAborted;
@@ -76,7 +78,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         public string QueryString { get; set; }
         public string RawTarget { get; set; }
         public CancellationToken RequestAborted { get; set; }
-        public bool HasResponseStarted => _hasResponseStarted == 1;
+        public bool HasResponseStarted => _hasResponseStarted;
         public IPAddress RemoteIpAddress { get; set; }
         public int RemotePort { get; set; }
         public IPAddress LocalIpAddress { get; set; }
@@ -191,12 +193,9 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         internal IISHttpServer Server => _server;
 
-        private async Task InitializeResponseAwaited()
+        private async Task ProduceStart()
         {
-            if (Interlocked.CompareExchange(ref _hasResponseStarted, 1, 0) != 0)
-            {
-                return;
-            }
+            Debug.Assert(_hasResponseStarted == false);
 
             await FireOnStarting();
 
@@ -205,22 +204,35 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 ThrowResponseAbortedException();
             }
 
+            _hasResponseStarted = true;
+
             SetResponseHeaders();
 
-            await StartIO();
+            EnsureIOInitialized();
 
-            StartProcessingRequestAndResponseBody();
+            await AsyncIO.FlushAsync();
+
+            _writeBodyTask = WriteBody();
         }
 
-        private ValueTask StartIO()
+        private void InitializeRequest()
+        {
+            Debug.Assert(!_hasRequestReadingStarted);
+
+            _hasRequestReadingStarted = true;
+
+            EnsureIOInitialized();
+
+            _readBodyTask = ReadBody();
+        }
+
+        private void EnsureIOInitialized()
         {
             // If at this point request was not upgraded just start a normal IO engine
             if (AsyncIO == null)
             {
                 AsyncIO = new AsyncIOEngine(_pInProcessHandler);
             }
-
-            return AsyncIO.FlushAsync();
         }
 
         private void ThrowResponseAbortedException()
@@ -264,16 +276,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private async Task ProduceEndAwaited()
         {
-            if (Interlocked.CompareExchange(ref _hasResponseStarted, 1, 0) != 0)
-            {
-                return;
-            }
-
-            SetResponseHeaders();
-
-            await StartIO();
-
-            StartProcessingRequestAndResponseBody();
+            await ProduceStart();
+            await Output.FlushAsync(default);
         }
 
         public unsafe void SetResponseHeaders()

@@ -388,6 +388,9 @@ namespace IISTestSite
         private void ReadAndWriteEchoLines(IApplicationBuilder app)
         {
             app.Run(async context => {
+                //Send headers
+                await context.Response.Body.FlushAsync();
+
                 var reader = new StreamReader(context.Request.Body);
                 while (!reader.EndOfStream)
                 {
@@ -398,6 +401,18 @@ namespace IISTestSite
                     }
                     await context.Response.WriteAsync(line + Environment.NewLine);
                     await context.Response.Body.FlushAsync();
+                }
+            });
+        }
+
+        private void SetHeaderFromBody(IApplicationBuilder app)
+        {
+            app.Run(async context => {
+                using (var reader = new StreamReader(context.Request.Body))
+                {
+                    var value = await reader.ReadToEndAsync();
+                    context.Response.Headers["BodyAsString"] = value;
+                    await context.Response.WriteAsync(value);
                 }
             });
         }
