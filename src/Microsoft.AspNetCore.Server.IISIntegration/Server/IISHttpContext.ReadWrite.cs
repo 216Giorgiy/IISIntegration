@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         /// <returns></returns>
         internal async Task<int> ReadAsync(Memory<byte> memory, CancellationToken cancellationToken)
         {
-            if (!_hasResponseStarted)
+            if (!HasResponseStarted)
             {
                 await InitializeResponseAwaited();
             }
@@ -62,7 +62,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 await Output.WriteAsync(memory, cancellationToken);
             }
 
-            return !_hasResponseStarted ? WriteFirstAsync() : Output.WriteAsync(memory, cancellationToken);
+            return !HasResponseStarted ? WriteFirstAsync() : Output.WriteAsync(memory, cancellationToken);
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 await Output.FlushAsync(cancellationToken);
             }
 
-            return !_hasResponseStarted ? FlushFirstAsync() : Output.FlushAsync(cancellationToken);
+            return !HasResponseStarted ? FlushFirstAsync() : Output.FlushAsync(cancellationToken);
         }
 
         private void StartProcessingRequestAndResponseBody()
@@ -105,6 +105,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
                     var read = await AsyncIO.ReadAsync(memory);
 
+                    // Read was canceled because of incoming write, requeue again
                     if (read == -1)
                     {
                         continue;

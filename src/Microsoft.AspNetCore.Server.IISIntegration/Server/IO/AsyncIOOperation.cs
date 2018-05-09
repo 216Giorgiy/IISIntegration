@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public ValueTaskSourceStatus GetStatus(short token)
         {
-            if (ReferenceEquals(Volatile.Read(ref _continuation), CallbackCompleted))
+            if (ReferenceEquals(Volatile.Read(ref _continuation), null))
             {
                 return ValueTaskSourceStatus.Pending;
             }
@@ -85,30 +85,16 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public AsyncContinuation? Invoke()
         {
-            if (InvokeOperation())
+            if (InvokeOperation(out var hr, out var bytes))
             {
-                return new AsyncContinuation(_continuation, _state);
+                return Complete(hr, bytes);
             }
             return null;
         }
 
-        public abstract bool InvokeOperation();
+        protected abstract bool InvokeOperation(out int hr, out int bytes);
 
         public AsyncContinuation Complete(int hr, int bytes)
-        {
-            SetResult(hr, bytes);
-
-            var continuation = Interlocked.CompareExchange(ref _continuation, CallbackCompleted, null);
-            if (continuation != null)
-            {
-                var state = _state;
-                return new AsyncContinuation(continuation, state);
-            }
-
-            return default;
-        }
-
-        protected void SetResult(int hr, int bytes)
         {
             if (hr != NativeMethods.HR_CANCEL_IO)
             {
@@ -124,10 +110,19 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 _exception = null;
             }
 
+            AsyncContinuation asyncContinuation = default;
+            var continuation = Interlocked.CompareExchange(ref _continuation, CallbackCompleted, null);
+            if (continuation != null)
+            {
+                asyncContinuation = new AsyncContinuation(continuation, _state);
+            }
+
             FreeOperationResources(hr, bytes);
+
+            return asyncContinuation;
         }
 
-        public abstract void FreeOperationResources(int hr, int bytes);
+        public virtual void FreeOperationResources(int hr, int bytes) { }
 
         protected virtual void ResetOperation()
         {

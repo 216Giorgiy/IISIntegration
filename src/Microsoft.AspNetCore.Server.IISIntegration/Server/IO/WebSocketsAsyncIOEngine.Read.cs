@@ -36,26 +36,20 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 _thisHandle = GCHandle.Alloc(this);
             }
 
-            public override unsafe bool InvokeOperation()
+            protected override unsafe bool InvokeOperation(out int hr, out int bytes)
             {
                 _inputHandle = _memory.Pin();
 
-                var hr = NativeMethods.HttpWebsocketsReadBytes(
+                hr = NativeMethods.HttpWebsocketsReadBytes(
                     _requestHandler,
                     (byte*)_inputHandle.Pointer,
                     _memory.Length,
                     ReadCallback,
                     (IntPtr)_thisHandle,
-                    out var dwReceivedBytes,
-                    out var fCompletionExpected);
+                    out bytes,
+                    out var completionExpected);
 
-                if (!fCompletionExpected)
-                {
-                    SetResult(hr, dwReceivedBytes);
-                    return true;
-                }
-
-                return false;
+                return !completionExpected;
             }
 
             public void Initialize(IntPtr requestHandler, Memory<byte> memory)

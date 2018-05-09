@@ -29,23 +29,17 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 _memory = memory;
             }
 
-            public override unsafe bool InvokeOperation()
+            protected override unsafe bool InvokeOperation(out int hr, out int bytes)
             {
                 _inputHandle = _memory.Pin();
-                var hr = NativeMethods.HttpReadRequestBytes(
+                hr = NativeMethods.HttpReadRequestBytes(
                     _requestHandler,
                     (byte*)_inputHandle.Pointer,
                     _memory.Length,
-                    out var dwReceivedBytes,
-                    out bool fCompletionExpected);
+                    out bytes,
+                    out bool completionExpected);
 
-                if (!fCompletionExpected)
-                {
-                    SetResult(hr, dwReceivedBytes);
-                    return true;
-                }
-
-                return false;
+                return !completionExpected;
             }
 
             protected override void ResetOperation()

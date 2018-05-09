@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private readonly IISOptions _options;
 
-        private volatile bool _hasResponseStarted;
+        private volatile int _hasResponseStarted;
 
         private int _statusCode;
         private string _reasonPhrase;
@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         public string QueryString { get; set; }
         public string RawTarget { get; set; }
         public CancellationToken RequestAborted { get; set; }
-        public bool HasResponseStarted => _hasResponseStarted;
+        public bool HasResponseStarted => _hasResponseStarted == 1;
         public IPAddress RemoteIpAddress { get; set; }
         public int RemotePort { get; set; }
         public IPAddress LocalIpAddress { get; set; }
@@ -168,7 +168,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             get { return _statusCode; }
             set
             {
-                if (_hasResponseStarted)
+                if (HasResponseStarted)
                 {
                     ThrowResponseAlreadyStartedException(nameof(StatusCode));
                 }
@@ -181,7 +181,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             get { return _reasonPhrase; }
             set
             {
-                if (_hasResponseStarted)
+                if (HasResponseStarted)
                 {
                     ThrowResponseAlreadyStartedException(nameof(ReasonPhrase));
                 }
@@ -193,7 +193,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private async Task InitializeResponseAwaited()
         {
-            Debug.Assert(!_hasResponseStarted);
+            if (Interlocked.CompareExchange(ref _hasResponseStarted, 1, 0) != 0)
+            {
+                return;
+            }
 
             await FireOnStarting();
 
@@ -201,8 +204,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             {
                 ThrowResponseAbortedException();
             }
-
-            _hasResponseStarted = true;
 
             SetResponseHeaders();
 
@@ -231,7 +232,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             if (_applicationException != null)
             {
-                if (_hasResponseStarted)
+                if (HasResponseStarted)
                 {
                     // We can no longer change the response, so we simply close the connection.
                     return Task.CompletedTask;
@@ -246,7 +247,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 }
             }
 
-            if (!_hasResponseStarted)
+            if (!HasResponseStarted)
             {
                 return ProduceEndAwaited();
             }
@@ -263,12 +264,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private async Task ProduceEndAwaited()
         {
-            if (_hasResponseStarted)
+            if (Interlocked.CompareExchange(ref _hasResponseStarted, 1, 0) != 0)
             {
                 return;
             }
-
-            _hasResponseStarted = true;
 
             SetResponseHeaders();
 
@@ -330,7 +329,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             lock (_onStartingSync)
             {
-                if (_hasResponseStarted)
+                if (HasResponseStarted)
                 {
                     throw new InvalidOperationException("Response already started");
                 }

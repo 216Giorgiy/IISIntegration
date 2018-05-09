@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _buffer = buffer;
         }
 
-        public override unsafe bool InvokeOperation()
+        protected override unsafe bool InvokeOperation(out int hr, out int bytes)
         {
             if (_buffer.Length > int.MaxValue)
             {
@@ -29,7 +29,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
 
             bool completionExpected;
-            int hr;
             var chunkCount = GetChunkCount();
 
 
@@ -52,13 +51,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 }
             }
 
-            if (!completionExpected)
-            {
-                SetResult(hr, bufferLength);
-                return true;
-            }
-
-            return false;
+            bytes = bufferLength;
+            return !completionExpected;
         }
 
         public override void FreeOperationResources(int hr, int bytes)

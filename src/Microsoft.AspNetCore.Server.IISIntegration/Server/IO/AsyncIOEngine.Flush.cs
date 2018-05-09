@@ -23,20 +23,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 _requestHandler = requestHandler;
             }
 
-            public override bool InvokeOperation()
+            protected override bool InvokeOperation(out int hr, out int bytes)
             {
-                var hr = NativeMethods.HttpFlushResponseBytes(_requestHandler, out var fCompletionExpected);
-                if (!fCompletionExpected)
-                {
-                    SetResult(hr, 0);
-                    return true;
-                }
+                bytes = 0;
+                hr = NativeMethods.HttpFlushResponseBytes(_requestHandler, out var fCompletionExpected);
 
-                return false;
-            }
-
-            public override void FreeOperationResources(int hr, int bytes)
-            {
+                return !fCompletionExpected;
             }
 
             protected override void ResetOperation()
