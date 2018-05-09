@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
         [ConditionalFact]
         public async Task ReadSetHeaderWrite()
         {
-            var body = new string('a', 100000);
+            var body = "Body text";
             var content = new StringContent(body);
             var response = await _fixture.Client.PostAsync("SetHeaderFromBody", content);
             var responseText = await response.Content.ReadAsStringAsync();

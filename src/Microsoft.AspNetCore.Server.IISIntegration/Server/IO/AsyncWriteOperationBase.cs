@@ -31,7 +31,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             bool completionExpected;
             var chunkCount = GetChunkCount();
 
-
             var bufferLength = (int)_buffer.Length;
 
             if (chunkCount < HttpDataChunkStackLimit)

@@ -193,16 +193,21 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         internal IISHttpServer Server => _server;
 
-        private async Task ProduceStart()
+        private async Task InitializeResponse()
         {
-            Debug.Assert(_hasResponseStarted == false);
-
             await FireOnStarting();
 
             if (_applicationException != null)
             {
                 ThrowResponseAbortedException();
             }
+
+            await ProduceStart();
+        }
+
+        private async Task ProduceStart()
+        {
+            Debug.Assert(_hasResponseStarted == false);
 
             _hasResponseStarted = true;
 

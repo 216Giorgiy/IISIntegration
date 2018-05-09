@@ -22,7 +22,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
             _webSocketUri = fixture.BaseUri.Replace("http:", "ws:");
         }
 
-
         [ConditionalFact]
         public async Task OnStartedCalledForWebSocket()
         {
@@ -32,7 +31,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
             await ReceiveMessage(cws, "OnStarting");
             await ReceiveMessage(cws, "Upgraded");
         }
-
 
         [ConditionalFact]
         public async Task CanSendAndReceieveData()

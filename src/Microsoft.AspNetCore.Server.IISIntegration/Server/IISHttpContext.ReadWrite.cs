@@ -58,7 +58,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             async Task WriteFirstAsync()
             {
-                await ProduceStart();
+                await InitializeResponse();
                 await Output.WriteAsync(memory, cancellationToken);
             }
 
@@ -74,7 +74,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             async Task FlushFirstAsync()
             {
-                await ProduceStart();
+                await InitializeResponse();
                 await Output.FlushAsync(cancellationToken);
             }
 
