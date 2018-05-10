@@ -39,6 +39,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public ValueTask<int> WriteAsync(ReadOnlySequence<byte> data)
         {
+            CheckInitialized();
+
             var write = GetWriteOperation();
             write.Initialize(_handler, data);
             write.Invoke();
@@ -98,6 +100,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public void Dispose()
         {
+            NativeMethods.HttpTryCancelIO(_handler);
         }
 
         private WebSocketReadOperation GetReadOperation() =>

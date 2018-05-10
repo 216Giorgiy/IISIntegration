@@ -41,7 +41,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         private string _reasonPhrase;
         private readonly object _onStartingSync = new object();
         private readonly object _onCompletedSync = new object();
-        protected readonly object _createReadWriteBodySync = new object();
 
         protected Stack<KeyValuePair<Func<object, Task>, object>> _onStarting;
         protected Stack<KeyValuePair<Func<object, Task>, object>> _onCompleted;
@@ -57,9 +56,13 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         private bool _wasUpgraded;
         protected int _requestAborted;
 
+        protected Pipe _bodyInputPipe;
+        protected OutputProducer _bodyOutput;
+
         private const string NtlmString = "NTLM";
         private const string NegotiateString = "Negotiate";
         private const string BasicString = "Basic";
+
 
         internal unsafe IISHttpContext(MemoryPool<byte> memoryPool, IntPtr pInProcessHandler, IISOptions options, IISHttpServer server)
             : base((HttpApiTypes.HTTP_REQUEST*)NativeMethods.HttpGetRawRequest(pInProcessHandler))
@@ -89,9 +92,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         internal WindowsPrincipal WindowsUser { get; set; }
         public Stream RequestBody { get; set; }
         public Stream ResponseBody { get; set; }
-        public Pipe Input { get; set; }
-        public OutputProducer Output { get; set; }
-        public IAsyncIOEngine AsyncIO { get; set; }
+
+        protected IAsyncIOEngine AsyncIO { get; set; }
 
         public IHeaderDictionary RequestHeaders { get; set; }
         public IHeaderDictionary ResponseHeaders { get; set; }
@@ -154,7 +156,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             RequestBody = new IISHttpRequestBody(this);
             ResponseBody = new IISHttpResponseBody(this);
 
-            Input = new Pipe(new PipeOptions(_memoryPool, readerScheduler: PipeScheduler.ThreadPool, minimumSegmentSize: MinAllocBufferSize));
+
             var pipe = new Pipe(
                 new PipeOptions(
                     _memoryPool,
@@ -162,7 +164,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                     pauseWriterThreshold: PauseWriterThreshold,
                     resumeWriterThreshold: ResumeWriterTheshold,
                     minimumSegmentSize: MinAllocBufferSize));
-            Output = new OutputProducer(pipe);
+            _bodyOutput = new OutputProducer(pipe);
         }
 
         public int StatusCode
@@ -220,7 +222,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             _writeBodyTask = WriteBody();
         }
 
-        private void InitializeRequest()
+        private void InitializeRequestIO()
         {
             Debug.Assert(!_hasRequestReadingStarted);
 
@@ -228,6 +230,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
             EnsureIOInitialized();
 
+            _bodyInputPipe = new Pipe(new PipeOptions(_memoryPool, readerScheduler: PipeScheduler.ThreadPool, minimumSegmentSize: MinAllocBufferSize));
             _readBodyTask = ReadBody();
         }
 
@@ -282,7 +285,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         private async Task ProduceEndAwaited()
         {
             await ProduceStart();
-            await Output.FlushAsync(default);
+            await _bodyOutput.FlushAsync(default);
         }
 
         public unsafe void SetResponseHeaders()
@@ -429,8 +432,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public void PostCompletion(NativeMethods.REQUEST_NOTIFICATION_STATUS requestNotificationStatus)
         {
-            AsyncIO.Dispose();
-
             NativeMethods.HttpSetCompletionStatus(_pInProcessHandler, requestNotificationStatus);
             NativeMethods.HttpPostCompletion(_pInProcessHandler, 0);
         }

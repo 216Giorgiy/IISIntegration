@@ -10,8 +10,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
     internal static class NativeMethods
     {
         internal const int HR_OK = 0;
-        internal const int HR_NOT_FOUND = unchecked((int)0x80070490);
-        internal const int HR_CANCEL_IO = -2147023901;
+        internal const int ERROR_NOT_FOUND = unchecked((int)0x80070490);
+        internal const int ERROR_OPERATION_ABORTED = unchecked((int)0x800703E3);
 
         private const string KERNEL32 = "kernel32.dll";
 
@@ -239,7 +239,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             var hr = http_cancel_io(pInProcessHandler);
             // Async operation finished
             // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363792(v=vs.85).aspx
-            if (hr == HR_NOT_FOUND)
+            if (hr == ERROR_NOT_FOUND)
             {
                 return false;
             }

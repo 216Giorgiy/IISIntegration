@@ -80,18 +80,24 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
             finally
             {
-                Output.Dispose();
+                // Complete response writer and request reader pipe sides
+                _bodyOutput.Dispose();
+                _bodyInputPipe?.Reader.Complete();
 
-                if (_readBodyTask != null)
-                {
-                    await _readBodyTask;
-                }
-
+                // Allow writes to drain
                 if (_writeBodyTask != null)
                 {
                     await _writeBodyTask;
                 }
 
+                // Cancell all remaining IO, thre might be reads pending if not entire request body was sent
+                // by client
+                AsyncIO.Dispose();
+
+                if (_readBodyTask != null)
+                {
+                    await _readBodyTask;
+                }
             }
             return success;
         }

@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
     internal partial class AsyncIOEngine : IAsyncIOEngine
     {
         private readonly IntPtr _handler;
+
+        private bool _stopped;
 
         private AsyncIOOperation _nextOperation;
         private AsyncIOOperation _runningOperation;
@@ -38,7 +41,6 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             var write = GetWriteOperation();
             write.Initialize(_handler, data);
             Run(write);
-            CancelPendingRead();
             return new ValueTask<int>(write, 0);
         }
 
@@ -46,11 +48,21 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             lock (this)
             {
+                if (_stopped)
+                {
+                    throw new IOException("IO stopped", NativeMethods.ERROR_OPERATION_ABORTED);
+                }
+
                 if (_runningOperation != null)
                 {
                     if (_nextOperation == null)
                     {
                         _nextOperation = ioOperation;
+
+                        if (_runningOperation is AsyncReadOperation)
+                        {
+                            NativeMethods.HttpTryCancelIO(_handler);
+                        }
                     }
                     else
                     {
@@ -72,23 +84,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
         }
 
-        private void CancelPendingRead()
-        {
-            lock (this)
-            {
-                if (_runningOperation is AsyncReadOperation && _nextOperation != null)
-                {
-                    NativeMethods.HttpTryCancelIO(_handler);
-                }
-            }
-        }
 
         public ValueTask FlushAsync()
         {
             var flush = GetFlushOperation();
             flush.Initialize(_handler);
             Run(flush);
-            CancelPendingRead();
             return new ValueTask(flush, 0);
         }
 
@@ -109,12 +110,20 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
                 if (next != null)
                 {
-                    nextContinuation = next.Invoke();
-
-                    // operation went async
-                    if (nextContinuation == null)
+                    if (_stopped)
                     {
-                        _runningOperation = next;
+                        // Abort next operation if IO is stopped
+                        nextContinuation = next.Complete(NativeMethods.ERROR_OPERATION_ABORTED, 0);
+                    }
+                    else
+                    {
+                        nextContinuation = next.Invoke();
+
+                        // operation went async
+                        if (nextContinuation == null)
+                        {
+                            _runningOperation = next;
+                        }
                     }
                 }
             }
@@ -127,10 +136,8 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             lock (this)
             {
-                if (_runningOperation != null || _nextOperation != null)
-                {
-                    throw new InvalidOperationException("Async IO operation is in progress");
-                }
+                _stopped = true;
+                NativeMethods.HttpTryCancelIO(_handler);
             }
         }
 

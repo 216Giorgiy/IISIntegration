@@ -33,6 +33,15 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
         }
 
         [ConditionalFact]
+        public async Task WebReadBeforeUpgrade()
+        {
+            var cws = new ClientWebSocket();
+            await cws.ConnectAsync(new Uri(_webSocketUri + "WebReadBeforeUpgrade"), default);
+
+            await ReceiveMessage(cws, "Yay");
+        }
+
+        [ConditionalFact]
         public async Task CanSendAndReceieveData()
         {
             var cws = new ClientWebSocket();

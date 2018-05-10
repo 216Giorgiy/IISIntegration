@@ -20,12 +20,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             if (!_hasRequestReadingStarted)
             {
-                InitializeRequest();
+                InitializeRequestIO();
             }
 
             while (true)
             {
-                var result = await Input.Reader.ReadAsync();
+                var result = await _bodyInputPipe.Reader.ReadAsync();
                 var readableBuffer = result.Buffer;
                 try
                 {
@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 }
                 finally
                 {
-                    Input.Reader.AdvanceTo(readableBuffer.End, readableBuffer.End);
+                    _bodyInputPipe.Reader.AdvanceTo(readableBuffer.End, readableBuffer.End);
                 }
             }
         }
@@ -59,10 +59,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             async Task WriteFirstAsync()
             {
                 await InitializeResponse();
-                await Output.WriteAsync(memory, cancellationToken);
+                await _bodyOutput.WriteAsync(memory, cancellationToken);
             }
 
-            return !HasResponseStarted ? WriteFirstAsync() : Output.WriteAsync(memory, cancellationToken);
+            return !HasResponseStarted ? WriteFirstAsync() : _bodyOutput.WriteAsync(memory, cancellationToken);
         }
 
         /// <summary>
@@ -75,10 +75,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             async Task FlushFirstAsync()
             {
                 await InitializeResponse();
-                await Output.FlushAsync(cancellationToken);
+                await _bodyOutput.FlushAsync(cancellationToken);
             }
 
-            return !HasResponseStarted ? FlushFirstAsync() : Output.FlushAsync(cancellationToken);
+            return !HasResponseStarted ? FlushFirstAsync() : _bodyOutput.FlushAsync(cancellationToken);
         }
 
         private async Task ReadBody()
@@ -87,24 +87,23 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             {
                 while (true)
                 {
-                    var memory = Input.Writer.GetMemory();
+                    var memory = _bodyInputPipe.Writer.GetMemory();
 
                     var read = await AsyncIO.ReadAsync(memory);
 
-                    // Read was canceled because of incoming write, requeue again
-                    if (read == -1)
-                    {
-                        continue;
-                    }
-
+                    // End of body
                     if (read == 0)
                     {
                         break;
                     }
 
-                    Input.Writer.Advance(read);
+                    // Read was not canceled because of incoming write or IO stopping
+                    if (read != -1)
+                    {
+                        _bodyInputPipe.Writer.Advance(read);
+                    }
 
-                    var result = await Input.Writer.FlushAsync();
+                    var result = await _bodyInputPipe.Writer.FlushAsync();
 
                     if (result.IsCompleted || result.IsCanceled)
                     {
@@ -114,11 +113,11 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
             catch (Exception ex)
             {
-                Input.Writer.Complete(ex);
+                _bodyInputPipe.Writer.Complete(ex);
             }
             finally
             {
-                Input.Writer.Complete();
+                _bodyInputPipe.Writer.Complete();
             }
         }
 
@@ -128,7 +127,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             {
                 while (true)
                 {
-                    var result = await Output.Reader.ReadAsync();
+                    var result = await _bodyOutput.Reader.ReadAsync();
 
                     var buffer = result.Buffer;
 
@@ -151,17 +150,17 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                     }
                     finally
                     {
-                        Output.Reader.AdvanceTo(buffer.End);
+                        _bodyOutput.Reader.AdvanceTo(buffer.End);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Output.Reader.Complete(ex);
+                _bodyOutput.Reader.Complete(ex);
             }
             finally
             {
-                Output.Reader.Complete();
+                _bodyOutput.Reader.Complete();
             }
         }
     }

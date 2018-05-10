@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public AsyncContinuation Complete(int hr, int bytes)
         {
-            if (hr != NativeMethods.HR_CANCEL_IO)
+            if (hr != NativeMethods.ERROR_OPERATION_ABORTED)
             {
                 _result = bytes;
                 if (hr != NativeMethods.HR_OK)

@@ -149,5 +149,38 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
                 await connection.WaitForConnectionClose();
             }
         }
+
+        [ConditionalFact]
+        public async Task ConsumePartialBody()
+        {
+            using (var connection = _fixture.CreateTestConnection())
+            {
+                var message = "Hello";
+                await connection.Send(
+                    "POST /ReadPartialBody HTTP/1.1",
+                    $"Content-Length: {100}",
+                    "Host: localhost",
+                    "Connection: close",
+                    "",
+                    "");
+
+                await connection.Send(message);
+
+                await connection.Receive(
+                    "HTTP/1.1 200 OK",
+                    "");
+                await connection.ReceiveHeaders();
+                await connection.Receive(
+                    "5",
+                    message,
+                    "");
+                await connection.Receive(
+                    "0",
+                    "",
+                    "");
+
+                await connection.WaitForConnectionClose();
+            }
+        }
     }
 }
