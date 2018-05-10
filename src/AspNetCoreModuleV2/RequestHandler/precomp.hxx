@@ -49,7 +49,6 @@
 #include "..\IISLib\multisza.h"
 #include "..\IISLib\base64.h"
 #include "..\IISLib\listentry.h"
-#include "..\CommonLib\fx_ver.h"
 #include "..\CommonLib\debugutil.h"
 #include "..\CommonLib\requesthandler.h"
 #include "..\CommonLib\utility.h"

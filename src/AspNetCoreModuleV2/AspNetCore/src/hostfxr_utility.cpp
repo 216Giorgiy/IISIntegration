@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-#include "stdafx.h"
+#include "precomp.hxx"
 
 HOSTFXR_UTILITY::HOSTFXR_UTILITY()
 {
@@ -11,368 +11,123 @@ HOSTFXR_UTILITY::~HOSTFXR_UTILITY()
 {
 }
 
-//
-// Runs a standalone appliction.
-// The folder structure looks like this:
-// Application/
-//   hostfxr.dll
-//   Application.exe
-//   Application.dll
-//   etc.
-// We get the full path to hostfxr.dll and Application.dll and run hostfxr_main,
-// passing in Application.dll.
-// Assuming we don't need Application.exe as the dll is the actual application.
-//
 HRESULT
-HOSTFXR_UTILITY::GetStandaloneHostfxrParameters(
-    PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
-    PCWSTR              pcwzApplicationPhysicalPath,
-    PCWSTR              pcwzArguments,
-    HANDLE              hEventLog,
-    _Inout_ STRU*       struHostFxrDllLocation,
-    _Out_ DWORD*        pdwArgCount,
-    _Out_ PWSTR**       ppwzArgv
+HOSTFXR_UTILITY::GetHostFxrParameters(
+	HANDLE              hEventLog,
+	PCWSTR              pcwzProcessPath,
+	PCWSTR              pcwzApplicationPhysicalPath,
+	PCWSTR              pcwzArguments,
+	_Inout_ STRU*		struHostFxrDllLocation,
+	_Inout_ STRU*		struExeAbsolutePath,
+	_Out_ DWORD*		pdwArgCount,
+	_Out_ BSTR**		pbstrArgv
 )
 {
-    HRESULT             hr = S_OK;
-    STRU                struDllPath;
-    STRU                struArguments;
-    STRU                struHostFxrPath;
-    STRU                struRuntimeConfigLocation;
-    DWORD               dwPosition;
+	HRESULT                     hr = S_OK;
+	STRU                        struSystemPathVariable;
+	STRU                        struAbsolutePathToHostFxr;
+	STRU                        struAbsolutePathToDotnet;
+	STRU                        struEventMsg;
+	STACK_STRU(struExpandedProcessPath, MAX_PATH);
+	STACK_STRU(struExpandedArguments, MAX_PATH);
 
-    // Obtain the app name from the processPath section.
-    if ( FAILED( hr = struDllPath.Copy( pwzExeAbsolutePath ) ) )
-    {
-        goto Finished;
-    }
-
-    dwPosition = struDllPath.LastIndexOf( L'.', 0 );
-    if ( dwPosition == -1 )
-    {
-        hr = E_FAIL;
-        goto Finished;
-    }
-
-    hr = UTILITY::ConvertPathToFullPath( L".\\hostfxr.dll", pcwzApplicationPhysicalPath, &struHostFxrPath );
-    if ( FAILED( hr ) )
-    {
-        goto Finished;
-    }
-
-	struDllPath.QueryStr()[dwPosition] = L'\0';
-	if (FAILED(hr = struDllPath.SyncWithBuffer()))
+	// Copy and Expand the processPath and Arguments.
+	if (FAILED(hr = struExpandedProcessPath.CopyAndExpandEnvironmentStrings(pcwzProcessPath))
+		|| FAILED(hr = struExpandedArguments.CopyAndExpandEnvironmentStrings(pcwzArguments)))
 	{
 		goto Finished;
 	}
 
-    if ( !UTILITY::CheckIfFileExists( struHostFxrPath.QueryStr() ) )
-    {
-        // Most likely a full framework app.
-        // Check that the runtime config file doesn't exist in the folder as another heuristic.
-        if (FAILED(hr = struRuntimeConfigLocation.Copy(struDllPath)) ||
-              FAILED(hr = struRuntimeConfigLocation.Append( L".runtimeconfig.json" )))
-        {
-            goto Finished;
-        }
-        if (!UTILITY::CheckIfFileExists(struRuntimeConfigLocation.QueryStr()))
-        {
+	// Convert the process path an absolute path to our current application directory.
+	// If the path is already an absolute path, it will be unchanged.
+	hr = UTILITY::ConvertPathToFullPath(
+		struExpandedProcessPath.QueryStr(),
+		pcwzApplicationPhysicalPath,
+		&struAbsolutePathToDotnet
+	);
 
-            hr = E_APPLICATION_ACTIVATION_EXEC_FAILURE;
-            UTILITY::LogEventF(hEventLog,
-                                EVENTLOG_ERROR_TYPE,
-                                ASPNETCORE_EVENT_INPROCESS_FULL_FRAMEWORK_APP,
-                                ASPNETCORE_EVENT_INPROCESS_FULL_FRAMEWORK_APP_MSG,
-                                pcwzApplicationPhysicalPath,
-                                hr);
-        }
-        else
-        {
-            // If a runtime config file does exist, report a file not found on the app.exe
-            hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-	        UTILITY::LogEventF(hEventLog,
-		        EVENTLOG_ERROR_TYPE,
-		        ASPNETCORE_EVENT_APPLICATION_EXE_NOT_FOUND,
-		        ASPNETCORE_EVENT_APPLICATION_EXE_NOT_FOUND_MSG,
-	            pcwzApplicationPhysicalPath,
-	            hr);
-        }
+	if (FAILED(hr))
+	{
+		goto Finished;
+	}
 
-        goto Finished;
-    }
+	// Check if the absolute path is to dotnet or not.
+	if (struAbsolutePathToDotnet.EndsWith(L"dotnet.exe") || struAbsolutePathToDotnet.EndsWith(L"dotnet"))
+	{
+		//
+		// The processPath ends with dotnet.exe or dotnet
+		// like: C:\Program Files\dotnet\dotnet.exe, C:\Program Files\dotnet\dotnet, dotnet.exe, or dotnet.
+		// Get the absolute path to dotnet. If the path is already an absolute path, it will return that path
+		//
+		if (FAILED(hr = HOSTFXR_UTILITY::GetAbsolutePathToDotnet(&struAbsolutePathToDotnet))) // Make sure to append the dotnet.exe path correctly here (pass in regular path)?
+		{
+			goto Finished;
+		}
 
-    if (FAILED(hr = struHostFxrDllLocation->Copy(struHostFxrPath)))
-    {
-        goto Finished;
-    }
+		if (FAILED(hr = GetAbsolutePathToHostFxr(&struAbsolutePathToDotnet, hEventLog, &struAbsolutePathToHostFxr)))
+		{
+			goto Finished;
+		}
 
+		if (FAILED(hr = UTILITY::ParseHostfxrArguments(
+			struExpandedArguments.QueryStr(),
+			struAbsolutePathToDotnet.QueryStr(),
+			pcwzApplicationPhysicalPath,
+			hEventLog,
+			pdwArgCount,
+			pbstrArgv)))
+		{
+			goto Finished;
+		}
 
-    if (FAILED(hr = struDllPath.Append(L".dll")))
-    {
-        goto Finished;
-    }
+		if (FAILED(hr = struHostFxrDllLocation->Copy(struAbsolutePathToHostFxr)))
+		{
+			goto Finished;
+		}
 
-    if (!UTILITY::CheckIfFileExists(struDllPath.QueryStr()))
-    {
-        // Treat access issue as File not found
-        hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-        goto Finished;
-    }
-
-    if (FAILED(hr = struArguments.Copy(struDllPath)) ||
-        FAILED(hr = struArguments.Append(L" ")) ||
-        FAILED(hr = struArguments.Append(pcwzArguments)))
-    {
-        goto Finished;
-    }
-
-    if (FAILED(hr = ParseHostfxrArguments(
-        struArguments.QueryStr(),
-        pwzExeAbsolutePath,
-        pcwzApplicationPhysicalPath,
-        hEventLog,
-        pdwArgCount,
-        ppwzArgv)))
-    {
-        goto Finished;
-    }
-
-Finished:
-
-    return hr;
-}
-
-HRESULT
-HOSTFXR_UTILITY::GetHostFxrParameters(
-    HANDLE              hEventLog,
-    PCWSTR              pcwzProcessPath,
-    PCWSTR              pcwzApplicationPhysicalPath,
-    PCWSTR              pcwzArguments,
-    _Inout_ STRU*		struHostFxrDllLocation,
-    _Out_ DWORD*		pdwArgCount,
-    _Out_ BSTR**		pbstrArgv
-)
-{
-    HRESULT                     hr = S_OK;
-    STRU                        struSystemPathVariable;
-    STRU                        struAbsolutePathToHostFxr;
-    STRU                        struAbsolutePathToDotnet;
-    STRU                        struEventMsg;
-    STACK_STRU(struExpandedProcessPath, MAX_PATH);
-    STACK_STRU(struExpandedArguments, MAX_PATH);
-
-    // Copy and Expand the processPath and Arguments.
-    if (FAILED(hr = struExpandedProcessPath.CopyAndExpandEnvironmentStrings(pcwzProcessPath))
-        || FAILED(hr = struExpandedArguments.CopyAndExpandEnvironmentStrings(pcwzArguments)))
-    {
-        goto Finished;
-    }
-
-    // Convert the process path an absolute path to our current application directory.
-    // If the path is already an absolute path, it will be unchanged.
-    hr = UTILITY::ConvertPathToFullPath(
-        struExpandedProcessPath.QueryStr(),
-        pcwzApplicationPhysicalPath,
-        &struAbsolutePathToDotnet
-    );
-
-    if (FAILED(hr))
-    {
-        goto Finished;
-    }
-
-    // Check if the absolute path is to dotnet or not.
-    if (struAbsolutePathToDotnet.EndsWith(L"dotnet.exe") || struAbsolutePathToDotnet.EndsWith(L"dotnet"))
-    {
-        //
-        // The processPath ends with dotnet.exe or dotnet
-        // like: C:\Program Files\dotnet\dotnet.exe, C:\Program Files\dotnet\dotnet, dotnet.exe, or dotnet.
-        // Get the absolute path to dotnet. If the path is already an absolute path, it will return that path
-        //
-        if (FAILED(hr = HOSTFXR_UTILITY::GetAbsolutePathToDotnet(&struAbsolutePathToDotnet))) // Make sure to append the dotnet.exe path correctly here (pass in regular path)?
-        {
-            goto Finished;
-        }
-
-        if (FAILED(hr = GetAbsolutePathToHostFxr(&struAbsolutePathToDotnet, hEventLog, &struAbsolutePathToHostFxr)))
-        {
-            goto Finished;
-        }
-
-        if (FAILED(hr = ParseHostfxrArguments(
-            struExpandedArguments.QueryStr(),
-            struAbsolutePathToDotnet.QueryStr(),
-            pcwzApplicationPhysicalPath,
-            hEventLog,
-            pdwArgCount,
-            pbstrArgv)))
-        {
-            goto Finished;
-        }
-
-        if (FAILED(hr = struHostFxrDllLocation->Copy(struAbsolutePathToHostFxr)))
-        {
-            goto Finished;
-        }
-    }
-    else
-    {
-        //
-        // The processPath is a path to the application executable
-        // like: C:\test\MyApp.Exe or MyApp.Exe
-        // Check if the file exists, and if it does, get the parameters for a standalone application
-        //
-        if (UTILITY::CheckIfFileExists(struAbsolutePathToDotnet.QueryStr()))
-        {
-            hr = GetStandaloneHostfxrParameters(
-                struAbsolutePathToDotnet.QueryStr(),
-                pcwzApplicationPhysicalPath,
-                struExpandedArguments.QueryStr(),
-                hEventLog,
-                struHostFxrDllLocation,
-                pdwArgCount,
-                pbstrArgv);
-        }
-        else
-        {
-            //
-            // If the processPath file does not exist and it doesn't include dotnet.exe or dotnet
-            // then it is an invalid argument.
-            //
-            hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);;
-            UTILITY::LogEventF(hEventLog,
-                EVENTLOG_ERROR_TYPE,
-                ASPNETCORE_EVENT_GENERAL_ERROR_MSG,
-                ASPNETCORE_EVENT_INVALID_PROCESS_PATH_MSG,
-                struExpandedProcessPath.QueryStr(),
-                hr);
-        }
-    }
+		if (FAILED(hr = struExeAbsolutePath->Copy(struAbsolutePathToDotnet))) {
+			goto Finished;
+		}
+	}
+	else
+	{
+		//
+		// The processPath is a path to the application executable
+		// like: C:\test\MyApp.Exe or MyApp.Exe
+		// Check if the file exists, and if it does, get the parameters for a standalone application
+		//
+		if (UTILITY::CheckIfFileExists(struAbsolutePathToDotnet.QueryStr()))
+		{
+			hr = UTILITY::GetStandaloneHostfxrParameters(
+				struAbsolutePathToDotnet.QueryStr(),
+				pcwzApplicationPhysicalPath,
+				struExpandedArguments.QueryStr(),
+				hEventLog,
+				struHostFxrDllLocation,
+				pdwArgCount,
+				pbstrArgv);
+		}
+		else
+		{
+			//
+			// If the processPath file does not exist and it doesn't include dotnet.exe or dotnet
+			// then it is an invalid argument.
+			//
+			hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);;
+			UTILITY::LogEventF(hEventLog,
+				EVENTLOG_ERROR_TYPE,
+				ASPNETCORE_EVENT_GENERAL_ERROR_MSG,
+				ASPNETCORE_EVENT_INVALID_PROCESS_PATH_MSG,
+				struExpandedProcessPath.QueryStr(),
+				hr);
+		}
+	}
 
 Finished:
 
-    return hr;
+	return hr;
 }
 
-//
-// Forms the argument list in HOSTFXR_PARAMETERS.
-// Sets the ArgCount and Arguments.
-// Arg structure:
-// argv[0] = Path to exe activating hostfxr.
-// argv[1] = L"exec"
-// argv[2] = absolute path to dll.
-//
-HRESULT
-HOSTFXR_UTILITY::ParseHostfxrArguments(
-    PCWSTR              pwzArgumentsFromConfig,
-    PCWSTR              pwzExePath,
-    PCWSTR              pcwzApplicationPhysicalPath,
-    HANDLE              hEventLog,
-    _Out_ DWORD*        pdwArgCount,
-    _Out_ BSTR**        pbstrArgv
-)
-{
-    UNREFERENCED_PARAMETER( hEventLog ); // TODO use event log to set errors.
-
-	DBG_ASSERT(dwArgCount != NULL);
-	DBG_ASSERT(pwzArgv != NULL);
-
-    HRESULT     hr = S_OK;
-    INT         argc = 0;
-    BSTR*       argv = NULL;
-    LPWSTR*     pwzArgs = NULL;
-    STRU        struTempPath;
-    INT         intArgsProcessed = 0;
-
-    // If we call CommandLineToArgvW with an empty string, argc is 5 for some interesting reason.
-    // Protectively guard against this by check if the string is null or empty.
-    if (pwzArgumentsFromConfig == NULL || wcscmp(pwzArgumentsFromConfig, L"") == 0)
-    {
-        hr = E_INVALIDARG;
-        goto Finished;
-    }
-
-    pwzArgs = CommandLineToArgvW(pwzArgumentsFromConfig, &argc);
-
-    if (pwzArgs == NULL)
-    {
-        hr = HRESULT_FROM_WIN32(GetLastError());
-        goto Failure;
-    }
-
-    argv = new BSTR[argc + 1];
-    if (argv == NULL)
-    {
-        hr = E_OUTOFMEMORY;
-        goto Failure;
-    }
-
-    argv[0] = SysAllocString(pwzExePath);
-
-    if (argv[0] == NULL)
-    {
-        hr = E_OUTOFMEMORY;
-        goto Failure;
-    }
-
-    // Try to convert the application dll from a relative to an absolute path
-    // Don't record this failure as pwzArgs[0] may already be an absolute path to the dll.
-    for (intArgsProcessed = 0; intArgsProcessed < argc; intArgsProcessed++)
-    {
-        struTempPath.Copy(pwzArgs[intArgsProcessed]);
-        if (struTempPath.EndsWith(L".dll"))
-        {
-            if (SUCCEEDED(UTILITY::ConvertPathToFullPath(pwzArgs[intArgsProcessed], pcwzApplicationPhysicalPath, &struTempPath)))
-            {
-                argv[intArgsProcessed + 1] = SysAllocString(struTempPath.QueryStr());
-            }
-            else
-            {
-                argv[intArgsProcessed + 1] = SysAllocString(pwzArgs[intArgsProcessed]);
-            }
-            if (argv[intArgsProcessed + 1] == NULL)
-            {
-                hr = E_OUTOFMEMORY;
-                goto Failure;
-            }
-        }
-        else
-        {
-            argv[intArgsProcessed + 1] = SysAllocString(pwzArgs[intArgsProcessed]);
-            if (argv[intArgsProcessed + 1] == NULL)
-            {
-                hr = E_OUTOFMEMORY;
-                goto Failure;
-            }
-        }
-    }
-
-    *pbstrArgv = argv;
-    *pdwArgCount = argc + 1;
-
-    goto Finished;
-
-Failure:
-    if (argv != NULL)
-    {
-        // intArgsProcess - 1 here as if we fail to allocated the ith string
-        // we don't want to free it.
-        for (INT i = 0; i < intArgsProcessed - 1; i++)
-        {
-            SysFreeString(argv[i]);
-        }
-    }
-
-    delete[] argv;
-
-Finished:
-    if (pwzArgs != NULL)
-    {
-        LocalFree(pwzArgs);
-        DBG_ASSERT(pwzArgs == NULL);
-    }
-    return hr;
-}
 
 HRESULT
 HOSTFXR_UTILITY::GetAbsolutePathToDotnet(
@@ -498,7 +253,7 @@ HOSTFXR_UTILITY::GetAbsolutePathToHostFxr(
         goto Finished;
     }
 
-    hr = UTILITY::FindHighestDotNetVersion(vVersionFolders, &struHighestDotnetVersion);
+    hr = FindHighestDotNetVersion(vVersionFolders, &struHighestDotnetVersion);
     if (FAILED(hr))
     {
         goto Finished;
@@ -804,4 +559,28 @@ HOSTFXR_UTILITY::GetAbsolutePathToDotnetFromProgramFiles(
 
 Finished:
     return hr;
+}
+
+HRESULT
+HOSTFXR_UTILITY::FindHighestDotNetVersion(
+	_In_ std::vector<std::wstring> vFolders,
+	_Out_ STRU *pstrResult
+)
+{
+	HRESULT hr = S_OK;
+	fx_ver_t max_ver(-1, -1, -1);
+	for (const auto& dir : vFolders)
+	{
+		fx_ver_t fx_ver(-1, -1, -1);
+		if (fx_ver_t::parse(dir, &fx_ver, false))
+		{
+			// TODO using max instead of std::max works
+			max_ver = max(max_ver, fx_ver);
+		}
+	}
+
+	hr = pstrResult->Copy(max_ver.as_str().c_str());
+
+	// we check FAILED(hr) outside of function
+	return hr;
 }

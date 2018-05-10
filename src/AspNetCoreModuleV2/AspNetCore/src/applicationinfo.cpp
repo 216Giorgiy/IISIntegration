@@ -178,7 +178,8 @@ APPLICATION_INFO::UpdateAppOfflineFileHandle()
 
 HRESULT
 APPLICATION_INFO::EnsureApplicationCreated(
-    IHttpContext *pHttpContext
+    IHttpContext *pHttpContext,
+    PCWSTR pcwzExePath
 )
 {
     HRESULT             hr = S_OK;
@@ -224,7 +225,7 @@ APPLICATION_INFO::EnsureApplicationCreated(
                 goto Finished;
             }
 
-            hr = m_pfnAspNetCoreCreateApplication(m_pServer, pHttpContext, &pApplication);
+            hr = m_pfnAspNetCoreCreateApplication(m_pServer, pHttpContext, pcwzExePath, &pApplication);
             if (FAILED(hr))
             {
                 goto Finished;

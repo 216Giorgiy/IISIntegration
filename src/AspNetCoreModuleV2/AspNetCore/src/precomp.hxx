@@ -110,6 +110,8 @@ inline bool IsSpace(char ch)
 #include "aspnetcore_msg.h"
 //#include "aspnetcore_event.h"
 #include "aspnetcore_shim_config.h"
+#include "hostfxr_utility.h"
+#include "fx_ver.h"
 
 #include "appoffline.h"
 #include "filewatcher.h"

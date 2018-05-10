@@ -813,7 +813,8 @@ IN_PROCESS_APPLICATION::ExecuteApplication(
 
     DBG_ASSERT(m_status == APPLICATION_STATUS::STARTING);
 
-    hModule = LoadLibraryW(m_pConfig->QueryHostFxrFullPath());
+    // hostfxr should already be loaded by the shim. If the shim eve
+    hModule = LoadLibraryW(L"hostfxr.dll");
 
     if (hModule == NULL)
     {

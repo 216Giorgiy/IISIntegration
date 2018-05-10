@@ -81,6 +81,7 @@ ASPNET_CORE_PROXY_MODULE::OnExecuteRequestHandler(
     APPLICATION_MANAGER   *pApplicationManager = NULL;
     REQUEST_NOTIFICATION_STATUS retVal = RQ_NOTIFICATION_CONTINUE;
     IAPPLICATION* pApplication = NULL;
+    BSTR pcwzExePath;
     STACK_STRU(struFileName, 256);
     if (g_fInShutdown)
     {
@@ -88,7 +89,7 @@ ASPNET_CORE_PROXY_MODULE::OnExecuteRequestHandler(
         goto Finished;
     }
 
-    hr = ASPNETCORE_SHIM_CONFIG::GetConfig(g_pHttpServer, g_pModuleId, pHttpContext->GetApplication(), g_hEventLog, &pConfig);
+    hr = ASPNETCORE_SHIM_CONFIG::GetConfig(g_pHttpServer, g_pModuleId, pHttpContext->GetApplication(), g_hEventLog, &pcwzExePath, &pConfig);
     if (FAILED(hr))
     {
         goto Finished;
@@ -142,7 +143,7 @@ ASPNET_CORE_PROXY_MODULE::OnExecuteRequestHandler(
     }
 
     // make sure assmebly is loaded and application is created
-    hr = m_pApplicationInfo->EnsureApplicationCreated(pHttpContext);
+    hr = m_pApplicationInfo->EnsureApplicationCreated(pHttpContext, pcwzExePath);
     if (FAILED(hr))
     {
         goto Finished;

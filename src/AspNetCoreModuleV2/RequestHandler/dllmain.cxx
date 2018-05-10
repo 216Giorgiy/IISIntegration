@@ -277,6 +277,7 @@ __stdcall
 CreateApplication(
     _In_  IHttpServer        *pServer,
     _In_  IHttpContext       *pHttpContext,
+    _In_  PCWSTR              pwzExeLocation,
     _Out_ IAPPLICATION      **ppApplication
 )
 {
@@ -287,7 +288,7 @@ CreateApplication(
     // Initialze some global variables here
     InitializeGlobalConfiguration(pServer);
 
-    hr = REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(pServer, pHttpContext, g_hEventLog, &pConfig);
+    hr = REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(pServer, pHttpContext, pwzExeLocation, g_hEventLog, &pConfig);
 
     if (FAILED(hr))
     {
@@ -310,7 +311,6 @@ CreateApplication(
         {
             goto Finished;
         }
-
 
         pApplication = new OUT_OF_PROCESS_APPLICATION(pConfig);
         if (pApplication == NULL)

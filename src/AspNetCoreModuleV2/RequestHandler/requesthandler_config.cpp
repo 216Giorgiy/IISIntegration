@@ -24,9 +24,10 @@ REQUESTHANDLER_CONFIG::~REQUESTHANDLER_CONFIG()
 HRESULT
 REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     _In_  IHttpServer             *pHttpServer,
-    _In_  IHttpContext            *pHttpContext,
-    _In_  HANDLE                   hEventLog,
-    _Out_ REQUESTHANDLER_CONFIG  **ppAspNetCoreConfig
+    _In_  IHttpContext            *pHttpContext, 
+	_In_  PCWSTR				  pwzExeLocation,
+    _In_  HANDLE                   hEventLog, 
+	_Out_ REQUESTHANDLER_CONFIG  **ppAspNetCoreConfig
 )
 {
     HRESULT                 hr = S_OK;
@@ -59,19 +60,13 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     // Modify config for inprocess.
     if (pRequestHandlerConfig->QueryHostingModel() == APP_HOSTING_MODEL::HOSTING_IN_PROCESS)
     {
-        if (FAILED(hr = HOSTFXR_UTILITY::GetHostFxrParameters(
-            hEventLog,
-            pRequestHandlerConfig->QueryProcessPath()->QueryStr(),
-            pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
-            pRequestHandlerConfig->QueryArguments()->QueryStr(),
-            &struHostFxrDllLocation,
+        if (FAILED(hr = UTILITY::ParseHostfxrArguments(
+			pRequestHandlerConfig->QueryArguments()->QueryStr(),
+			pwzExeLocation,
+			pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
+			hEventLog,
             &dwArgCount,
             &pwzArgv)))
-        {
-            goto Finished;
-        }
-
-        if (FAILED(hr = pRequestHandlerConfig->SetHostFxrFullPath(struHostFxrDllLocation.QueryStr())))
         {
             goto Finished;
         }

@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-#include "stdafx.h"
+#include "precomp.hxx"
 
 fx_ver_t::fx_ver_t(int major, int minor, int patch, const std::wstring& pre, const std::wstring& build)
     : m_major(major)

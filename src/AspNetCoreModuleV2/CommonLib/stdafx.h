@@ -28,7 +28,5 @@
 #include "SRWLockWrapper.h"
 #include "environmentvariablehash.h"
 #include "utility.h"
-#include "fx_ver.h"
-#include "hostfxr_utility.h"
 #include "resources.h"
 #include "aspnetcore_msg.h"

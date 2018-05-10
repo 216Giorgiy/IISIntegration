@@ -9,9 +9,10 @@ extern BOOL     g_fRecycleProcessCalled;
 typedef
 HRESULT
 (WINAPI * PFN_ASPNETCORE_CREATE_APPLICATION)(
-    _In_  IHttpServer        *pServer,
+    _In_  IHttpServer    *pServer,
     _In_  IHttpContext   *pHttpContext,
-    _Out_ IAPPLICATION      **pApplication
+    _In_  PCWSTR          pcwzExePath,
+    _Out_ IAPPLICATION  **pApplication
     );
 
 //
@@ -146,7 +147,8 @@ public:
 
     HRESULT
     EnsureApplicationCreated(
-        IHttpContext *pHttpContext
+        IHttpContext *pHttpContext,
+        PCWSTR        pcwzExePath
     );
 
 private:

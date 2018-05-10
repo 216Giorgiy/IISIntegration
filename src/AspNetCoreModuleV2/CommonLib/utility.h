@@ -99,13 +99,6 @@ public:
     );
 
     static
-    HRESULT
-    FindHighestDotNetVersion(
-        _In_ std::vector<std::wstring> vFolders,
-        _Out_ STRU *pstrResult
-    );
-
-    static
     BOOL
     CheckIfFileExists(
         PCWSTR pszFilePath
@@ -129,6 +122,29 @@ public:
         __in PCWSTR  pstrMsg,
         ...
     );
+
+	static
+	HRESULT
+	GetStandaloneHostfxrParameters(
+		PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
+		PCWSTR				pcwzApplicationPhysicalPath,
+		PCWSTR              pcwzArguments,
+		HANDLE              hEventLog,
+		_Inout_ STRU*		pStruHostFxrDllLocation,
+		_Out_ DWORD*		pdwArgCount,
+		_Out_ BSTR**		ppwzArgv
+	);
+
+	static
+	HRESULT
+	ParseHostfxrArguments(
+		PCWSTR              pwzArgumentsFromConfig,
+		PCWSTR              pwzExePath,
+		PCWSTR              pcwzApplicationPhysicalPath,
+		HANDLE              hEventLog,
+		_Out_ DWORD*        pdwArgCount,
+		_Out_ BSTR**        pbstrArgv
+	);
 
 private:
 

@@ -6,6 +6,7 @@
 typedef REQUEST_NOTIFICATION_STATUS(WINAPI * PFN_REQUEST_HANDLER) (IN_PROCESS_HANDLER* pInProcessHandler, void* pvRequestHandlerContext);
 typedef BOOL(WINAPI * PFN_SHUTDOWN_HANDLER) (void* pvShutdownHandlerContext);
 typedef REQUEST_NOTIFICATION_STATUS(WINAPI * PFN_MANAGED_CONTEXT_HANDLER)(void *pvManagedHttpContext, HRESULT hrCompletionStatus, DWORD cbCompletion);
+typedef INT(*hostfxr_main_fn) (CONST DWORD argc, CONST PCWSTR argv[]);
 
 class IN_PROCESS_APPLICATION : public APPLICATION
 {
