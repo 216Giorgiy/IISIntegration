@@ -43,7 +43,7 @@ APPLICATION_INFO::~APPLICATION_INFO()
 HRESULT
 APPLICATION_INFO::Initialize(
     _In_ ASPNETCORE_SHIM_CONFIG   *pConfiguration,
-    _In_ FILE_WATCHER        *pFileWatcher
+    _In_ FILE_WATCHER             *pFileWatcher
 )
 {
     HRESULT hr = S_OK;
@@ -179,7 +179,7 @@ APPLICATION_INFO::UpdateAppOfflineFileHandle()
 HRESULT
 APPLICATION_INFO::EnsureApplicationCreated(
     IHttpContext *pHttpContext,
-    PCWSTR pcwzExePath
+    BSTR pcwzExePath
 )
 {
     HRESULT             hr = S_OK;

@@ -123,28 +123,28 @@ public:
         ...
     );
 
-	static
-	HRESULT
-	GetStandaloneHostfxrParameters(
-		PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
-		PCWSTR				pcwzApplicationPhysicalPath,
-		PCWSTR              pcwzArguments,
-		HANDLE              hEventLog,
-		_Inout_ STRU*		pStruHostFxrDllLocation,
-		_Out_ DWORD*		pdwArgCount,
-		_Out_ BSTR**		ppwzArgv
-	);
+    static
+    HRESULT
+    GetStandaloneHostfxrParameters(
+        PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
+        PCWSTR				pcwzApplicationPhysicalPath,
+        PCWSTR              pcwzArguments,
+        HANDLE              hEventLog,
+        _Inout_ STRU*		pStruHostFxrDllLocation,
+        _Out_ DWORD*		pdwArgCount,
+        _Out_ BSTR**		ppwzArgv
+    );
 
-	static
-	HRESULT
-	ParseHostfxrArguments(
-		PCWSTR              pwzArgumentsFromConfig,
-		PCWSTR              pwzExePath,
-		PCWSTR              pcwzApplicationPhysicalPath,
-		HANDLE              hEventLog,
-		_Out_ DWORD*        pdwArgCount,
-		_Out_ BSTR**        pbstrArgv
-	);
+    static
+    HRESULT
+    ParseHostfxrArguments(
+        PCWSTR              pwzArgumentsFromConfig,
+        PCWSTR              pwzExePath,
+        PCWSTR              pcwzApplicationPhysicalPath,
+        HANDLE              hEventLog,
+        _Out_ DWORD*        pdwArgCount,
+        _Out_ BSTR**        pbstrArgv
+    );
 
 private:
 

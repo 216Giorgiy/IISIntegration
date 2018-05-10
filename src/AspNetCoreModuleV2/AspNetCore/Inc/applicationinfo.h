@@ -11,7 +11,7 @@ HRESULT
 (WINAPI * PFN_ASPNETCORE_CREATE_APPLICATION)(
     _In_  IHttpServer    *pServer,
     _In_  IHttpContext   *pHttpContext,
-    _In_  PCWSTR          pcwzExePath,
+    _In_  BSTR            pcwzExePath,
     _Out_ IAPPLICATION  **pApplication
     );
 
@@ -148,7 +148,7 @@ public:
     HRESULT
     EnsureApplicationCreated(
         IHttpContext *pHttpContext,
-        PCWSTR        pcwzExePath
+        BSTR        pcwzExePath
     );
 
 private:

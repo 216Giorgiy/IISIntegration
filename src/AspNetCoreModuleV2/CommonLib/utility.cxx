@@ -76,7 +76,7 @@ Return Value:
     {
         if (FAILED(hr = pstrUrl->Copy(pszSlash)) ||
             FAILED(hr = pstrDestination->Copy(pszDestinationUrl,
-                            (DWORD)(pszSlash - pszDestinationUrl))))
+            (DWORD)(pszSlash - pszDestinationUrl))))
         {
             return hr;
         }
@@ -109,23 +109,23 @@ UTILITY::UnEscapeUrl(
     DWORD index = 0;
 
     while (index < cchUrl &&
-           (fCopyQuery || pszUrl[index] != L'?'))
+        (fCopyQuery || pszUrl[index] != L'?'))
     {
         switch (pszUrl[index])
         {
         case L'%':
-            if (iswxdigit(pszUrl[index+1]) && iswxdigit(pszUrl[index+2]))
+            if (iswxdigit(pszUrl[index + 1]) && iswxdigit(pszUrl[index + 2]))
             {
                 if (index > cchStart &&
                     FAILED(hr = pstrResult->AppendW(pszUrl + cchStart,
-                                                    index - cchStart)))
+                        index - cchStart)))
                 {
                     return hr;
                 }
-                cchStart = index+3;
+                cchStart = index + 3;
 
-                pch[0] = static_cast<CHAR>(TOHEX(pszUrl[index+1]) * 16 +
-                                TOHEX(pszUrl[index+2]));
+                pch[0] = static_cast<CHAR>(TOHEX(pszUrl[index + 1]) * 16 +
+                    TOHEX(pszUrl[index + 2]));
                 if (FAILED(hr = pstrResult->Append(pch, 1)))
                 {
                     return hr;
@@ -143,7 +143,7 @@ UTILITY::UnEscapeUrl(
     if (index > cchStart)
     {
         return pstrResult->AppendW(pszUrl + cchStart,
-                                   index - cchStart);
+            index - cchStart);
     }
 
     return S_OK;
@@ -169,18 +169,18 @@ UTILITY::UnEscapeUrl(
         switch (pszUrl[index])
         {
         case L'%':
-            if (iswxdigit(pszUrl[index+1]) && iswxdigit(pszUrl[index+2]))
+            if (iswxdigit(pszUrl[index + 1]) && iswxdigit(pszUrl[index + 2]))
             {
                 if (index > cchStart &&
                     FAILED(hr = pstrResult->Append(pszUrl + cchStart,
-                                                   index - cchStart)))
+                        index - cchStart)))
                 {
                     return hr;
                 }
-                cchStart = index+3;
+                cchStart = index + 3;
 
-                pch[0] = static_cast<WCHAR>(TOHEX(pszUrl[index+1]) * 16 +
-                                 TOHEX(pszUrl[index+2]));
+                pch[0] = static_cast<WCHAR>(TOHEX(pszUrl[index + 1]) * 16 +
+                    TOHEX(pszUrl[index + 2]));
                 if (FAILED(hr = pstrResult->Append(pch, 1)))
                 {
                     return hr;
@@ -201,11 +201,11 @@ UTILITY::UnEscapeUrl(
             {
                 if (index > cchStart &&
                     FAILED(hr = pstrResult->Append(pszUrl + cchStart,
-                                                   index - cchStart)))
+                        index - cchStart)))
                 {
                     return hr;
                 }
-                cchStart = index+1;
+                cchStart = index + 1;
 
                 if (FAILED(hr = pstrResult->Append(L"\\", 1)))
                 {
@@ -224,7 +224,7 @@ UTILITY::UnEscapeUrl(
     if (index > cchStart)
     {
         return pstrResult->Append(pszUrl + cchStart,
-                                  index - cchStart);
+            index - cchStart);
     }
 
     return S_OK;
@@ -241,9 +241,9 @@ UTILITY::EscapeAbsPath(
     LPCWSTR pszAbsPath = NULL;
     LPCWSTR pszFindStr = NULL;
 
-    hr = strAbsPath.Copy( pRequest->GetRawHttpRequest()->CookedUrl.pAbsPath,
-        pRequest->GetRawHttpRequest()->CookedUrl.AbsPathLength / sizeof(WCHAR) );
-    if(FAILED(hr))
+    hr = strAbsPath.Copy(pRequest->GetRawHttpRequest()->CookedUrl.pAbsPath,
+        pRequest->GetRawHttpRequest()->CookedUrl.AbsPathLength / sizeof(WCHAR));
+    if (FAILED(hr))
     {
         goto Finished;
     }
@@ -251,9 +251,9 @@ UTILITY::EscapeAbsPath(
     pszAbsPath = strAbsPath.QueryStr();
     pszFindStr = wcschr(pszAbsPath, L'?');
 
-    while(pszFindStr != NULL)
+    while (pszFindStr != NULL)
     {
-        strEscapedUrl->Append( pszAbsPath, pszFindStr - pszAbsPath);
+        strEscapedUrl->Append(pszAbsPath, pszFindStr - pszAbsPath);
         strEscapedUrl->Append(L"%3F");
         pszAbsPath = pszFindStr + 1;
         pszFindStr = wcschr(pszAbsPath, L'?');
@@ -261,7 +261,7 @@ UTILITY::EscapeAbsPath(
 
     strEscapedUrl->Append(pszAbsPath);
     strEscapedUrl->Append(pRequest->GetRawHttpRequest()->CookedUrl.pQueryString,
-                          pRequest->GetRawHttpRequest()->CookedUrl.QueryStringLength / sizeof(WCHAR));
+        pRequest->GetRawHttpRequest()->CookedUrl.QueryStringLength / sizeof(WCHAR));
 
 Finished:
     return hr;
@@ -350,14 +350,14 @@ UTILITY::IsPathUnc(
     HRESULT hr = S_OK;
     STRU strTempPath;
 
-    if ( pszPath == NULL || pfIsUnc == NULL )
+    if (pszPath == NULL || pfIsUnc == NULL)
     {
         hr = E_INVALIDARG;
         goto Finished;
     }
 
-    hr = MakePathCanonicalizationProof( (LPWSTR) pszPath, &strTempPath );
-    if ( FAILED(hr) )
+    hr = MakePathCanonicalizationProof((LPWSTR)pszPath, &strTempPath);
+    if (FAILED(hr))
     {
         goto Finished;
     }
@@ -365,7 +365,7 @@ UTILITY::IsPathUnc(
     //
     // MakePathCanonicalizationProof will map \\?\UNC, \\.\UNC and \\ to \\?\UNC
     //
-    (*pfIsUnc) = ( _wcsnicmp( strTempPath.QueryStr(), L"\\\\?\\UNC\\", 8 /* sizeof \\?\UNC\ */) == 0 );
+    (*pfIsUnc) = (_wcsnicmp(strTempPath.QueryStr(), L"\\\\?\\UNC\\", 8 /* sizeof \\?\UNC\ */) == 0);
 
 Finished:
 
@@ -384,47 +384,47 @@ UTILITY::ConvertPathToFullPath(
     LPWSTR pszFullPath = NULL;
 
     // if relative path, prefix with root path and then convert to absolute path.
-    if ( PathIsRelative(pszPath) )
+    if (PathIsRelative(pszPath))
     {
         hr = strFileFullPath.Copy(pszRootPath);
-        if(FAILED(hr))
+        if (FAILED(hr))
         {
             goto Finished;
         }
 
-        if(!strFileFullPath.EndsWith(L"\\"))
+        if (!strFileFullPath.EndsWith(L"\\"))
         {
             hr = strFileFullPath.Append(L"\\");
-            if(FAILED(hr))
+            if (FAILED(hr))
             {
                 goto Finished;
             }
         }
     }
 
-    hr = strFileFullPath.Append( pszPath );
+    hr = strFileFullPath.Append(pszPath);
     if (FAILED(hr))
     {
         goto Finished;
     }
 
-    pszFullPath = new WCHAR[ strFileFullPath.QueryCCH() + 1];
-    if ( pszFullPath == NULL )
+    pszFullPath = new WCHAR[strFileFullPath.QueryCCH() + 1];
+    if (pszFullPath == NULL)
     {
         hr = E_OUTOFMEMORY;
         goto Finished;
     }
 
-    if(_wfullpath( pszFullPath,
-                   strFileFullPath.QueryStr(),
-                   strFileFullPath.QueryCCH() + 1 ) == NULL )
+    if (_wfullpath(pszFullPath,
+        strFileFullPath.QueryStr(),
+        strFileFullPath.QueryCCH() + 1) == NULL)
     {
-        hr = HRESULT_FROM_WIN32( ERROR_INVALID_PARAMETER );
+        hr = HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
         goto Finished;
     }
 
     // convert to canonical path
-    hr = MakePathCanonicalizationProof( pszFullPath, pStruFullPath );
+    hr = MakePathCanonicalizationProof(pszFullPath, pStruFullPath);
     if (FAILED(hr))
     {
         goto Finished;
@@ -432,7 +432,7 @@ UTILITY::ConvertPathToFullPath(
 
 Finished:
 
-    if ( pszFullPath != NULL )
+    if (pszFullPath != NULL)
     {
         delete[] pszFullPath;
         pszFullPath = NULL;
@@ -477,12 +477,12 @@ UTILITY::EnsureDirectoryPathExist(
             fDone = TRUE;
             goto Finished;
         }
-        else if (dwPosition ==0)
+        else if (dwPosition == 0)
         {
             hr = ERROR_INTERNAL_ERROR;
             goto Finished;
         }
-        else if (struPath.QueryStr()[dwPosition-1] == L':')
+        else if (struPath.QueryStr()[dwPosition - 1] == L':')
         {
             //  skip volume case
             continue;
@@ -616,7 +616,7 @@ UTILITY::LogEventF(
     va_list argsList;
     va_start(argsList, pstrMsg);
 
-    STACK_STRU ( strEventMsg, 256 );
+    STACK_STRU(strEventMsg, 256);
 
     if (SUCCEEDED(strEventMsg.SafeVsnwprintf(
         pstrMsg,
@@ -628,7 +628,7 @@ UTILITY::LogEventF(
             strEventMsg.QueryStr());
     }
 
-    va_end( argsList );
+    va_end(argsList);
 }
 
 //
@@ -641,114 +641,114 @@ UTILITY::LogEventF(
 //
 HRESULT
 UTILITY::ParseHostfxrArguments(
-	PCWSTR              pwzArgumentsFromConfig,
-	PCWSTR              pwzExePath,
-	PCWSTR              pcwzApplicationPhysicalPath,
-	HANDLE              hEventLog,
-	_Out_ DWORD*        pdwArgCount,
-	_Out_ BSTR**        pbstrArgv
+    PCWSTR              pwzArgumentsFromConfig,
+    PCWSTR              pwzExePath,
+    PCWSTR              pcwzApplicationPhysicalPath,
+    HANDLE              hEventLog,
+    _Out_ DWORD*        pdwArgCount,
+    _Out_ BSTR**        pbstrArgv
 )
 {
-	UNREFERENCED_PARAMETER(hEventLog); // TODO use event log to set errors.
+    UNREFERENCED_PARAMETER(hEventLog); // TODO use event log to set errors.
 
-	DBG_ASSERT(dwArgCount != NULL);
-	DBG_ASSERT(pwzArgv != NULL);
+    DBG_ASSERT(dwArgCount != NULL);
+    DBG_ASSERT(pwzArgv != NULL);
 
-	HRESULT     hr = S_OK;
-	INT         argc = 0;
-	BSTR*       argv = NULL;
-	LPWSTR*     pwzArgs = NULL;
-	STRU        struTempPath;
-	INT         intArgsProcessed = 0;
+    HRESULT     hr = S_OK;
+    INT         argc = 0;
+    BSTR*       argv = NULL;
+    LPWSTR*     pwzArgs = NULL;
+    STRU        struTempPath;
+    INT         intArgsProcessed = 0;
 
-	// If we call CommandLineToArgvW with an empty string, argc is 5 for some interesting reason.
-	// Protectively guard against this by check if the string is null or empty.
-	if (pwzArgumentsFromConfig == NULL || wcscmp(pwzArgumentsFromConfig, L"") == 0)
-	{
-		hr = E_INVALIDARG;
-		goto Finished;
-	}
+    // If we call CommandLineToArgvW with an empty string, argc is 5 for some interesting reason.
+    // Protectively guard against this by check if the string is null or empty.
+    if (pwzArgumentsFromConfig == NULL || wcscmp(pwzArgumentsFromConfig, L"") == 0)
+    {
+        hr = E_INVALIDARG;
+        goto Finished;
+    }
 
-	pwzArgs = CommandLineToArgvW(pwzArgumentsFromConfig, &argc);
+    pwzArgs = CommandLineToArgvW(pwzArgumentsFromConfig, &argc);
 
-	if (pwzArgs == NULL)
-	{
-		hr = HRESULT_FROM_WIN32(GetLastError());
-		goto Failure;
-	}
+    if (pwzArgs == NULL)
+    {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto Failure;
+    }
 
-	argv = new BSTR[argc + 1];
-	if (argv == NULL)
-	{
-		hr = E_OUTOFMEMORY;
-		goto Failure;
-	}
+    argv = new BSTR[argc + 1];
+    if (argv == NULL)
+    {
+        hr = E_OUTOFMEMORY;
+        goto Failure;
+    }
 
-	argv[0] = SysAllocString(pwzExePath);
+    argv[0] = SysAllocString(pwzExePath);
 
-	if (argv[0] == NULL)
-	{
-		hr = E_OUTOFMEMORY;
-		goto Failure;
-	}
+    if (argv[0] == NULL)
+    {
+        hr = E_OUTOFMEMORY;
+        goto Failure;
+    }
 
-	// Try to convert the application dll from a relative to an absolute path
-	// Don't record this failure as pwzArgs[0] may already be an absolute path to the dll.
-	for (intArgsProcessed = 0; intArgsProcessed < argc; intArgsProcessed++)
-	{
-		struTempPath.Copy(pwzArgs[intArgsProcessed]);
-		if (struTempPath.EndsWith(L".dll"))
-		{
-			if (SUCCEEDED(UTILITY::ConvertPathToFullPath(pwzArgs[intArgsProcessed], pcwzApplicationPhysicalPath, &struTempPath)))
-			{
-				argv[intArgsProcessed + 1] = SysAllocString(struTempPath.QueryStr());
-			}
-			else
-			{
-				argv[intArgsProcessed + 1] = SysAllocString(pwzArgs[intArgsProcessed]);
-			}
-			if (argv[intArgsProcessed + 1] == NULL)
-			{
-				hr = E_OUTOFMEMORY;
-				goto Failure;
-			}
-		}
-		else
-		{
-			argv[intArgsProcessed + 1] = SysAllocString(pwzArgs[intArgsProcessed]);
-			if (argv[intArgsProcessed + 1] == NULL)
-			{
-				hr = E_OUTOFMEMORY;
-				goto Failure;
-			}
-		}
-	}
+    // Try to convert the application dll from a relative to an absolute path
+    // Don't record this failure as pwzArgs[0] may already be an absolute path to the dll.
+    for (intArgsProcessed = 0; intArgsProcessed < argc; intArgsProcessed++)
+    {
+        struTempPath.Copy(pwzArgs[intArgsProcessed]);
+        if (struTempPath.EndsWith(L".dll"))
+        {
+            if (SUCCEEDED(UTILITY::ConvertPathToFullPath(pwzArgs[intArgsProcessed], pcwzApplicationPhysicalPath, &struTempPath)))
+            {
+                argv[intArgsProcessed + 1] = SysAllocString(struTempPath.QueryStr());
+            }
+            else
+            {
+                argv[intArgsProcessed + 1] = SysAllocString(pwzArgs[intArgsProcessed]);
+            }
+            if (argv[intArgsProcessed + 1] == NULL)
+            {
+                hr = E_OUTOFMEMORY;
+                goto Failure;
+            }
+        }
+        else
+        {
+            argv[intArgsProcessed + 1] = SysAllocString(pwzArgs[intArgsProcessed]);
+            if (argv[intArgsProcessed + 1] == NULL)
+            {
+                hr = E_OUTOFMEMORY;
+                goto Failure;
+            }
+        }
+    }
 
-	*pbstrArgv = argv;
-	*pdwArgCount = argc + 1;
+    *pbstrArgv = argv;
+    *pdwArgCount = argc + 1;
 
-	goto Finished;
+    goto Finished;
 
 Failure:
-	if (argv != NULL)
-	{
-		// intArgsProcess - 1 here as if we fail to allocated the ith string
-		// we don't want to free it.
-		for (INT i = 0; i < intArgsProcessed - 1; i++)
-		{
-			SysFreeString(argv[i]);
-		}
-	}
+    if (argv != NULL)
+    {
+        // intArgsProcess - 1 here as if we fail to allocated the ith string
+        // we don't want to free it.
+        for (INT i = 0; i < intArgsProcessed - 1; i++)
+        {
+            SysFreeString(argv[i]);
+        }
+    }
 
-	delete[] argv;
+    delete[] argv;
 
 Finished:
-	if (pwzArgs != NULL)
-	{
-		LocalFree(pwzArgs);
-		DBG_ASSERT(pwzArgs == NULL);
-	}
-	return hr;
+    if (pwzArgs != NULL)
+    {
+        LocalFree(pwzArgs);
+        DBG_ASSERT(pwzArgs == NULL);
+    }
+    return hr;
 }
 
 
@@ -766,119 +766,119 @@ Finished:
 //
 HRESULT
 UTILITY::GetStandaloneHostfxrParameters(
-	PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
-	PCWSTR				pcwzApplicationPhysicalPath,
-	PCWSTR              pcwzArguments,
-	HANDLE              hEventLog,
-	_Inout_ STRU*		pStruHostFxrDllLocation,
-	_Out_ DWORD*		pdwArgCount,
-	_Out_ BSTR**		ppwzArgv
+    PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
+    PCWSTR				pcwzApplicationPhysicalPath,
+    PCWSTR              pcwzArguments,
+    HANDLE              hEventLog,
+    _Inout_ STRU*		pStruHostFxrDllLocation,
+    _Out_ DWORD*		pdwArgCount,
+    _Out_ BSTR**		ppwzArgv
 )
 {
-	HRESULT             hr = S_OK;
-	STRU                struDllPath;
-	STRU                struArguments;
-	STRU                struHostFxrPath;
-	STRU                struRuntimeConfigLocation;
-	DWORD               dwPosition;
+    HRESULT             hr = S_OK;
+    STRU                struDllPath;
+    STRU                struArguments;
+    STRU                struHostFxrPath;
+    STRU                struRuntimeConfigLocation;
+    DWORD               dwPosition;
 
-	// Obtain the app name from the processPath section.
-	if (FAILED(hr = struDllPath.Copy(pwzExeAbsolutePath)))
-	{
-		goto Finished;
-	}
+    // Obtain the app name from the processPath section.
+    if (FAILED(hr = struDllPath.Copy(pwzExeAbsolutePath)))
+    {
+        goto Finished;
+    }
 
-	dwPosition = struDllPath.LastIndexOf(L'.', 0);
-	if (dwPosition == -1)
-	{
-		hr = E_FAIL;
-		goto Finished;
-	}
+    dwPosition = struDllPath.LastIndexOf(L'.', 0);
+    if (dwPosition == -1)
+    {
+        hr = E_FAIL;
+        goto Finished;
+    }
 
-	hr = UTILITY::ConvertPathToFullPath(L".\\hostfxr.dll", pcwzApplicationPhysicalPath, &struHostFxrPath);
-	if (FAILED(hr))
-	{
-		goto Finished;
-	}
+    hr = UTILITY::ConvertPathToFullPath(L".\\hostfxr.dll", pcwzApplicationPhysicalPath, &struHostFxrPath);
+    if (FAILED(hr))
+    {
+        goto Finished;
+    }
 
-	struDllPath.QueryStr()[dwPosition] = L'\0';
-	if (FAILED(hr = struDllPath.SyncWithBuffer()))
-	{
-		goto Finished;
-	}
+    struDllPath.QueryStr()[dwPosition] = L'\0';
+    if (FAILED(hr = struDllPath.SyncWithBuffer()))
+    {
+        goto Finished;
+    }
 
-	if (!UTILITY::CheckIfFileExists(struHostFxrPath.QueryStr()))
-	{
-		// Most likely a full framework app.
-		// Check that the runtime config file doesn't exist in the folder as another heuristic.
-		if (FAILED(hr = struRuntimeConfigLocation.Copy(struDllPath)) ||
-			FAILED(hr = struRuntimeConfigLocation.Append(L".runtimeconfig.json")))
-		{
-			goto Finished;
-		}
-		if (!UTILITY::CheckIfFileExists(struRuntimeConfigLocation.QueryStr()))
-		{
+    if (!UTILITY::CheckIfFileExists(struHostFxrPath.QueryStr()))
+    {
+        // Most likely a full framework app.
+        // Check that the runtime config file doesn't exist in the folder as another heuristic.
+        if (FAILED(hr = struRuntimeConfigLocation.Copy(struDllPath)) ||
+            FAILED(hr = struRuntimeConfigLocation.Append(L".runtimeconfig.json")))
+        {
+            goto Finished;
+        }
+        if (!UTILITY::CheckIfFileExists(struRuntimeConfigLocation.QueryStr()))
+        {
 
-			hr = E_APPLICATION_ACTIVATION_EXEC_FAILURE;
-			UTILITY::LogEventF(hEventLog,
-				EVENTLOG_ERROR_TYPE,
-				ASPNETCORE_EVENT_INPROCESS_FULL_FRAMEWORK_APP,
-				ASPNETCORE_EVENT_INPROCESS_FULL_FRAMEWORK_APP_MSG,
-				pcwzApplicationPhysicalPath,
-				hr);
-		}
-		else
-		{
-			// If a runtime config file does exist, report a file not found on the app.exe
-			hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-			UTILITY::LogEventF(hEventLog,
-				EVENTLOG_ERROR_TYPE,
-				ASPNETCORE_EVENT_APPLICATION_EXE_NOT_FOUND,
-				ASPNETCORE_EVENT_APPLICATION_EXE_NOT_FOUND_MSG,
-				pcwzApplicationPhysicalPath,
-				hr);
-		}
+            hr = E_APPLICATION_ACTIVATION_EXEC_FAILURE;
+            UTILITY::LogEventF(hEventLog,
+                EVENTLOG_ERROR_TYPE,
+                ASPNETCORE_EVENT_INPROCESS_FULL_FRAMEWORK_APP,
+                ASPNETCORE_EVENT_INPROCESS_FULL_FRAMEWORK_APP_MSG,
+                pcwzApplicationPhysicalPath,
+                hr);
+        }
+        else
+        {
+            // If a runtime config file does exist, report a file not found on the app.exe
+            hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+            UTILITY::LogEventF(hEventLog,
+                EVENTLOG_ERROR_TYPE,
+                ASPNETCORE_EVENT_APPLICATION_EXE_NOT_FOUND,
+                ASPNETCORE_EVENT_APPLICATION_EXE_NOT_FOUND_MSG,
+                pcwzApplicationPhysicalPath,
+                hr);
+        }
 
-		goto Finished;
-	}
+        goto Finished;
+    }
 
-	if (FAILED(hr = pStruHostFxrDllLocation->Copy(struHostFxrPath)))
-	{
-		goto Finished;
-	}
+    if (FAILED(hr = pStruHostFxrDllLocation->Copy(struHostFxrPath)))
+    {
+        goto Finished;
+    }
 
 
-	if (FAILED(hr = struDllPath.Append(L".dll")))
-	{
-		goto Finished;
-	}
+    if (FAILED(hr = struDllPath.Append(L".dll")))
+    {
+        goto Finished;
+    }
 
-	if (!UTILITY::CheckIfFileExists(struDllPath.QueryStr()))
-	{
-		// Treat access issue as File not found
-		hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
-		goto Finished;
-	}
+    if (!UTILITY::CheckIfFileExists(struDllPath.QueryStr()))
+    {
+        // Treat access issue as File not found
+        hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+        goto Finished;
+    }
 
-	if (FAILED(hr = struArguments.Copy(struDllPath)) ||
-		FAILED(hr = struArguments.Append(L" ")) ||
-		FAILED(hr = struArguments.Append(pcwzArguments)))
-	{
-		goto Finished;
-	}
+    if (FAILED(hr = struArguments.Copy(struDllPath)) ||
+        FAILED(hr = struArguments.Append(L" ")) ||
+        FAILED(hr = struArguments.Append(pcwzArguments)))
+    {
+        goto Finished;
+    }
 
-	if (FAILED(hr = ParseHostfxrArguments(
-		struArguments.QueryStr(),
-		pwzExeAbsolutePath,
-		pcwzApplicationPhysicalPath,
-		hEventLog,
-		pdwArgCount,
-		ppwzArgv)))
-	{
-		goto Finished;
-	}
+    if (FAILED(hr = ParseHostfxrArguments(
+        struArguments.QueryStr(),
+        pwzExeAbsolutePath,
+        pcwzApplicationPhysicalPath,
+        hEventLog,
+        pdwArgCount,
+        ppwzArgv)))
+    {
+        goto Finished;
+    }
 
 Finished:
 
-	return hr;
+    return hr;
 }

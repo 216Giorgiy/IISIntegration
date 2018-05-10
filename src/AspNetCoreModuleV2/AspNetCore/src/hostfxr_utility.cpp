@@ -13,119 +13,120 @@ HOSTFXR_UTILITY::~HOSTFXR_UTILITY()
 
 HRESULT
 HOSTFXR_UTILITY::GetHostFxrParameters(
-	HANDLE              hEventLog,
-	PCWSTR              pcwzProcessPath,
-	PCWSTR              pcwzApplicationPhysicalPath,
-	PCWSTR              pcwzArguments,
-	_Inout_ STRU*		struHostFxrDllLocation,
-	_Inout_ STRU*		struExeAbsolutePath,
-	_Out_ DWORD*		pdwArgCount,
-	_Out_ BSTR**		pbstrArgv
+    _In_ HANDLE         hEventLog,
+    _In_ PCWSTR			pcwzProcessPath,
+    _In_ PCWSTR         pcwzApplicationPhysicalPath,
+    _In_ PCWSTR         pcwzArguments,
+    _Inout_ STRU       *pStruHostFxrDllLocation,
+    _Inout_ STRU       *struExeAbsolutePath,
+    _Out_ DWORD        *pdwArgCount,
+    _Out_ BSTR        **ppwzArgv
 )
 {
-	HRESULT                     hr = S_OK;
-	STRU                        struSystemPathVariable;
-	STRU                        struAbsolutePathToHostFxr;
-	STRU                        struAbsolutePathToDotnet;
-	STRU                        struEventMsg;
-	STACK_STRU(struExpandedProcessPath, MAX_PATH);
-	STACK_STRU(struExpandedArguments, MAX_PATH);
+    HRESULT                     hr = S_OK;
+    STRU                        struSystemPathVariable;
+    STRU                        struAbsolutePathToHostFxr;
+    STRU                        struAbsolutePathToDotnet;
+    STRU                        struEventMsg;
+    BSTR*                       pbstrArgv;
+    STACK_STRU(struExpandedProcessPath, MAX_PATH);
+    STACK_STRU(struExpandedArguments, MAX_PATH);
 
-	// Copy and Expand the processPath and Arguments.
-	if (FAILED(hr = struExpandedProcessPath.CopyAndExpandEnvironmentStrings(pcwzProcessPath))
-		|| FAILED(hr = struExpandedArguments.CopyAndExpandEnvironmentStrings(pcwzArguments)))
-	{
-		goto Finished;
-	}
+    // Copy and Expand the processPath and Arguments.
+    if (FAILED(hr = struExpandedProcessPath.CopyAndExpandEnvironmentStrings(pcwzProcessPath))
+        || FAILED(hr = struExpandedArguments.CopyAndExpandEnvironmentStrings(pcwzArguments)))
+    {
+        goto Finished;
+    }
 
-	// Convert the process path an absolute path to our current application directory.
-	// If the path is already an absolute path, it will be unchanged.
-	hr = UTILITY::ConvertPathToFullPath(
-		struExpandedProcessPath.QueryStr(),
-		pcwzApplicationPhysicalPath,
-		&struAbsolutePathToDotnet
-	);
+    // Convert the process path an absolute path to our current application directory.
+    // If the path is already an absolute path, it will be unchanged.
+    hr = UTILITY::ConvertPathToFullPath(
+        struExpandedProcessPath.QueryStr(),
+        pcwzApplicationPhysicalPath,
+        &struAbsolutePathToDotnet
+    );
 
-	if (FAILED(hr))
-	{
-		goto Finished;
-	}
+    if (FAILED(hr))
+    {
+        goto Finished;
+    }
 
-	// Check if the absolute path is to dotnet or not.
-	if (struAbsolutePathToDotnet.EndsWith(L"dotnet.exe") || struAbsolutePathToDotnet.EndsWith(L"dotnet"))
-	{
-		//
-		// The processPath ends with dotnet.exe or dotnet
-		// like: C:\Program Files\dotnet\dotnet.exe, C:\Program Files\dotnet\dotnet, dotnet.exe, or dotnet.
-		// Get the absolute path to dotnet. If the path is already an absolute path, it will return that path
-		//
-		if (FAILED(hr = HOSTFXR_UTILITY::GetAbsolutePathToDotnet(&struAbsolutePathToDotnet))) // Make sure to append the dotnet.exe path correctly here (pass in regular path)?
-		{
-			goto Finished;
-		}
+    // Check if the absolute path is to dotnet or not.
+    if (struAbsolutePathToDotnet.EndsWith(L"dotnet.exe") || struAbsolutePathToDotnet.EndsWith(L"dotnet"))
+    {
+        //
+        // The processPath ends with dotnet.exe or dotnet
+        // like: C:\Program Files\dotnet\dotnet.exe, C:\Program Files\dotnet\dotnet, dotnet.exe, or dotnet.
+        // Get the absolute path to dotnet. If the path is already an absolute path, it will return that path
+        //
+        if (FAILED(hr = HOSTFXR_UTILITY::GetAbsolutePathToDotnet(&struAbsolutePathToDotnet))) // Make sure to append the dotnet.exe path correctly here (pass in regular path)?
+        {
+            goto Finished;
+        }
 
-		if (FAILED(hr = GetAbsolutePathToHostFxr(&struAbsolutePathToDotnet, hEventLog, &struAbsolutePathToHostFxr)))
-		{
-			goto Finished;
-		}
+        if (FAILED(hr = GetAbsolutePathToHostFxr(&struAbsolutePathToDotnet, hEventLog, &struAbsolutePathToHostFxr)))
+        {
+            goto Finished;
+        }
 
-		if (FAILED(hr = UTILITY::ParseHostfxrArguments(
-			struExpandedArguments.QueryStr(),
-			struAbsolutePathToDotnet.QueryStr(),
-			pcwzApplicationPhysicalPath,
-			hEventLog,
-			pdwArgCount,
-			pbstrArgv)))
-		{
-			goto Finished;
-		}
+        if (FAILED(hr = UTILITY::ParseHostfxrArguments(
+            struExpandedArguments.QueryStr(),
+            struAbsolutePathToDotnet.QueryStr(),
+            pcwzApplicationPhysicalPath,
+            hEventLog,
+            pdwArgCount,
+            &pbstrArgv)))
+        {
+            goto Finished;
+        }
 
-		if (FAILED(hr = struHostFxrDllLocation->Copy(struAbsolutePathToHostFxr)))
-		{
-			goto Finished;
-		}
+        if (FAILED(hr = pStruHostFxrDllLocation->Copy(struAbsolutePathToHostFxr)))
+        {
+            goto Finished;
+        }
 
-		if (FAILED(hr = struExeAbsolutePath->Copy(struAbsolutePathToDotnet))) {
-			goto Finished;
-		}
-	}
-	else
-	{
-		//
-		// The processPath is a path to the application executable
-		// like: C:\test\MyApp.Exe or MyApp.Exe
-		// Check if the file exists, and if it does, get the parameters for a standalone application
-		//
-		if (UTILITY::CheckIfFileExists(struAbsolutePathToDotnet.QueryStr()))
-		{
-			hr = UTILITY::GetStandaloneHostfxrParameters(
-				struAbsolutePathToDotnet.QueryStr(),
-				pcwzApplicationPhysicalPath,
-				struExpandedArguments.QueryStr(),
-				hEventLog,
-				struHostFxrDllLocation,
-				pdwArgCount,
-				pbstrArgv);
-		}
-		else
-		{
-			//
-			// If the processPath file does not exist and it doesn't include dotnet.exe or dotnet
-			// then it is an invalid argument.
-			//
-			hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);;
-			UTILITY::LogEventF(hEventLog,
-				EVENTLOG_ERROR_TYPE,
-				ASPNETCORE_EVENT_GENERAL_ERROR_MSG,
-				ASPNETCORE_EVENT_INVALID_PROCESS_PATH_MSG,
-				struExpandedProcessPath.QueryStr(),
-				hr);
-		}
-	}
+        if (FAILED(hr = struExeAbsolutePath->Copy(struAbsolutePathToDotnet))) {
+            goto Finished;
+        }
+    }
+    else
+    {
+        //
+        // The processPath is a path to the application executable
+        // like: C:\test\MyApp.Exe or MyApp.Exe
+        // Check if the file exists, and if it does, get the parameters for a standalone application
+        //
+        if (UTILITY::CheckIfFileExists(struAbsolutePathToDotnet.QueryStr()))
+        {
+            hr = UTILITY::GetStandaloneHostfxrParameters(
+                struAbsolutePathToDotnet.QueryStr(),
+                pcwzApplicationPhysicalPath,
+                struExpandedArguments.QueryStr(),
+                hEventLog,
+                pStruHostFxrDllLocation,
+                pdwArgCount,
+                &pbstrArgv);
+        }
+        else
+        {
+            //
+            // If the processPath file does not exist and it doesn't include dotnet.exe or dotnet
+            // then it is an invalid argument.
+            //
+            hr = HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);;
+            UTILITY::LogEventF(hEventLog,
+                EVENTLOG_ERROR_TYPE,
+                ASPNETCORE_EVENT_GENERAL_ERROR_MSG,
+                ASPNETCORE_EVENT_INVALID_PROCESS_PATH_MSG,
+                struExpandedProcessPath.QueryStr(),
+                hr);
+        }
+    }
 
 Finished:
 
-	return hr;
+    return hr;
 }
 
 
@@ -563,24 +564,24 @@ Finished:
 
 HRESULT
 HOSTFXR_UTILITY::FindHighestDotNetVersion(
-	_In_ std::vector<std::wstring> vFolders,
-	_Out_ STRU *pstrResult
+    _In_ std::vector<std::wstring> vFolders,
+    _Out_ STRU *pstrResult
 )
 {
-	HRESULT hr = S_OK;
-	fx_ver_t max_ver(-1, -1, -1);
-	for (const auto& dir : vFolders)
-	{
-		fx_ver_t fx_ver(-1, -1, -1);
-		if (fx_ver_t::parse(dir, &fx_ver, false))
-		{
-			// TODO using max instead of std::max works
-			max_ver = max(max_ver, fx_ver);
-		}
-	}
+    HRESULT hr = S_OK;
+    fx_ver_t max_ver(-1, -1, -1);
+    for (const auto& dir : vFolders)
+    {
+        fx_ver_t fx_ver(-1, -1, -1);
+        if (fx_ver_t::parse(dir, &fx_ver, false))
+        {
+            // TODO using max instead of std::max works
+            max_ver = max(max_ver, fx_ver);
+        }
+    }
 
-	hr = pstrResult->Copy(max_ver.as_str().c_str());
+    hr = pstrResult->Copy(max_ver.as_str().c_str());
 
-	// we check FAILED(hr) outside of function
-	return hr;
+    // we check FAILED(hr) outside of function
+    return hr;
 }

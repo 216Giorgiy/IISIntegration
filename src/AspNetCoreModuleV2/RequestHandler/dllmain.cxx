@@ -277,7 +277,7 @@ __stdcall
 CreateApplication(
     _In_  IHttpServer        *pServer,
     _In_  IHttpContext       *pHttpContext,
-    _In_  PCWSTR              pwzExeLocation,
+    _In_  BSTR              pwzExeLocation,
     _Out_ IAPPLICATION      **ppApplication
 )
 {
