@@ -173,6 +173,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="application.h" />
+    <ClInclude Include="fx_ver.h" />
+    <ClInclude Include="hostfxr_utility.h" />
     <ClInclude Include="iapplication.h" />
     <ClInclude Include="debugutil.h" />
     <ClInclude Include="disconnectcontext.h" />
@@ -185,6 +187,8 @@
     <ClInclude Include="utility.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="fx_ver.cxx" />
+    <ClCompile Include="hostfxr_utility.cpp" />
     <ClCompile Include="SRWLockWrapper.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

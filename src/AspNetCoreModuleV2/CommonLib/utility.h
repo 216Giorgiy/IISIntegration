@@ -92,13 +92,6 @@ public:
     );
 
     static
-    VOID
-    FindDotNetFolders(
-        _In_ PCWSTR pszPath,
-        _Out_ std::vector<std::wstring> *pvFolders
-    );
-
-    static
     BOOL
     CheckIfFileExists(
         PCWSTR pszFilePath
@@ -123,34 +116,6 @@ public:
         ...
     );
 
-    static
-    HRESULT
-    GetStandaloneHostfxrParameters(
-        PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
-        PCWSTR				pcwzApplicationPhysicalPath,
-        PCWSTR              pcwzArguments,
-        HANDLE              hEventLog,
-        _Inout_ STRU*		pStruHostFxrDllLocation,
-        _Out_ DWORD*		pdwArgCount,
-        _Out_ BSTR**		ppwzArgv
-    );
-
-    static
-    HRESULT
-    ParseHostfxrArguments(
-        PCWSTR              pwzArgumentsFromConfig,
-        PCWSTR              pwzExePath,
-        PCWSTR              pcwzApplicationPhysicalPath,
-        HANDLE              hEventLog,
-        _Out_ DWORD*        pdwArgCount,
-        _Out_ BSTR**        pbstrArgv
-    );
-
-    static
-    BOOL
-    IsDotnetExecutable(
-        PCWSTR  executablePath
-    );
 private:
 
     UTILITY() {}

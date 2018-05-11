@@ -45,20 +45,25 @@
 #define WINVER 0x0601
 #define _WIN32_WINNT 0x0601
 
-#include "..\IISLib\acache.h"
-#include "..\IISLib\multisz.h"
-#include "..\IISLib\multisza.h"
-#include "..\IISLib\base64.h"
-#include "..\IISLib\listentry.h"
-#include "..\CommonLib\debugutil.h"
-#include "..\CommonLib\requesthandler.h"
-#include "..\CommonLib\utility.h"
-#include "..\CommonLib\application.h"
-#include "..\CommonLib\resources.h"
+// IIS Lib
+#include "acache.h"
+#include "multisz.h"
+#include "multisza.h"
+#include "base64.h"
+#include "listentry.h"
+#include "debugutil.h"
+
+// Common lib
+#include "hostfxr_utility.h"
+#include "requesthandler.h"
+#include "utility.h"
+#include "application.h"
+#include "resources.h"
 #include "aspnetcore_event.h"
 #include "aspnetcore_msg.h"
 #include "disconnectcontext.h"
 #include "environmentvariablehelpers.h"
+
 #include "sttimer.h"
 #include ".\requesthandler_config.h"
 #include ".\inprocess\InProcessHandler.h"

@@ -67,9 +67,9 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
             goto Finished;
         }
 
-        if (UTILITY::IsDotnetExecutable(struExeLocation.QueryStr()))
+        if (HOSTFXR_UTILITY::IsDotnetExecutable(struExeLocation.QueryStr()))
         {
-            if (FAILED(hr = UTILITY::ParseHostfxrArguments(
+            if (FAILED(hr = HOSTFXR_UTILITY::ParseHostfxrArguments(
                 pRequestHandlerConfig->QueryArguments()->QueryStr(),
                 pwzExeLocation,
                 pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
@@ -82,7 +82,7 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
         }
         else 
         {
-            if (FAILED(hr = UTILITY::GetStandaloneHostfxrParameters(
+            if (FAILED(hr = HOSTFXR_UTILITY::GetStandaloneHostfxrParameters(
                 pwzExeLocation,
                 pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
                 pRequestHandlerConfig->QueryArguments()->QueryStr(),

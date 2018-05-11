@@ -214,11 +214,9 @@
     <ClInclude Include="Inc\applicationinfo.h" />
     <ClInclude Include="Inc\appoffline.h" />
     <ClInclude Include="Inc\aspnetcore_shim_config.h" />
-    <ClInclude Include="Inc\fx_ver.h" />
     <ClInclude Include="inc\globalmodule.h" />
     <ClInclude Include="Inc\applicationmanager.h" />
     <ClInclude Include="Inc\filewatcher.h" />
-    <ClInclude Include="Inc\hostfxr_utility.h" />
     <ClInclude Include="Inc\proxymodule.h" />
     <ClInclude Include="Src\precomp.hxx" />
   </ItemGroup>
@@ -228,9 +226,7 @@
     <ClCompile Include="src\aspnetcore_shim_config.cpp" />
     <ClCompile Include="Src\dllmain.cpp" />
     <ClCompile Include="Src\filewatcher.cxx" />
-    <ClCompile Include="src\fx_ver.cxx" />
     <ClCompile Include="src\globalmodule.cpp" />
-    <ClCompile Include="src\hostfxr_utility.cpp" />
     <ClCompile Include="Src\proxymodule.cxx" />
   </ItemGroup>
   <ItemGroup>

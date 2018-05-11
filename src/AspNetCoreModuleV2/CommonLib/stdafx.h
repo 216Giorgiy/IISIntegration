@@ -30,3 +30,6 @@
 #include "utility.h"
 #include "resources.h"
 #include "aspnetcore_msg.h"
+#include "fx_ver.h"
+#include "hostfxr_utility.h"
+

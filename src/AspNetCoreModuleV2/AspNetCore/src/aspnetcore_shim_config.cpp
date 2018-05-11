@@ -109,6 +109,7 @@ ASPNETCORE_SHIM_CONFIG::GetConfig(
 
     hr = pHttpApplication->GetModuleContextContainer()->
         SetModuleContext(pAspNetCoreShimConfig, pModuleId);
+
     if (FAILED(hr))
     {
         if (hr == HRESULT_FROM_WIN32(ERROR_ALREADY_ASSIGNED))
@@ -132,14 +133,6 @@ ASPNETCORE_SHIM_CONFIG::GetConfig(
     {
         DebugPrintf(ASPNETCORE_DEBUG_FLAG_INFO,
             "ASPNETCORE_SHIM_CONFIG::GetConfig, set config to ModuleContext");
-
-        // set appliction info here instead of inside Populate()
-        // as the destructor will delete the backend process
-        hr = pAspNetCoreShimConfig->QueryApplicationPath()->Copy(pHttpApplication->GetApplicationId());
-        if (FAILED(hr))
-        {
-            goto Finished;
-        }
     }
 
     *ppAspNetCoreShimConfig = pAspNetCoreShimConfig;
@@ -168,9 +161,6 @@ ASPNETCORE_SHIM_CONFIG::Populate(
     STRU                            strApplicationFullPath;
     IAppHostAdminManager           *pAdminManager = NULL;
     IAppHostElement                *pAspNetCoreElement = NULL;
-    DWORD                           dwCounter = 0;
-    DWORD                           dwPosition = 0;
-    WCHAR*                          pszPath = NULL;
     BSTR                            bstrAspNetCoreSection = NULL;
 
     pAdminManager = pHttpServer->GetAdminManager();
@@ -184,18 +174,6 @@ ASPNETCORE_SHIM_CONFIG::Populate(
     if (FAILED(hr))
     {
         goto Finished;
-    }
-
-    pszPath = m_struConfigPath.QueryStr();
-    while (pszPath[dwPosition] != NULL)
-    {
-        if (pszPath[dwPosition] == '/')
-        {
-            dwCounter++;
-            if (dwCounter == 4)
-                break;
-        }
-        dwPosition++;
     }
 
     bstrAspNetCoreSection = SysAllocString(CS_ASPNETCORE_SECTION);
