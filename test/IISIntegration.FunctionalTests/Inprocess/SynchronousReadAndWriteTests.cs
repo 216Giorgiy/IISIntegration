@@ -169,15 +169,26 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
                 await connection.Receive(
                     "HTTP/1.1 200 OK",
                     "");
-                await connection.ReceiveHeaders();
-                await connection.Receive(
-                    "5",
-                    message,
-                    "");
-                await connection.Receive(
-                    "0",
-                    "",
-                    "");
+
+                // This test can return both content lenght or chunked response
+                // depending on if appfunc managed to complete before write was
+                // issued
+                var headers = await connection.ReceiveHeaders();
+                if (headers.Contains("Content-Length: 5"))
+                {
+                    await connection.Receive("Hello");
+                }
+                else
+                {
+                    await connection.Receive(
+                        "5",
+                        message,
+                        "");
+                    await connection.Receive(
+                        "0",
+                        "",
+                        "");
+                }
 
                 await connection.WaitForConnectionClose();
             }

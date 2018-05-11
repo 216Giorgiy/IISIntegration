@@ -267,7 +267,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             // Upgrade async will cause the stream processing to go into duplex mode
             AsyncIO = new WebSocketsAsyncIOEngine(_pInProcessHandler);
 
-            await InitializeResponse();
+            await InitializeResponse(true);
 
             return new DuplexStream(RequestBody, ResponseBody);
         }

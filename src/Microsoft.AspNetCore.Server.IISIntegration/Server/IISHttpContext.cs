@@ -195,7 +195,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         internal IISHttpServer Server => _server;
 
-        private async Task InitializeResponse()
+        private async Task InitializeResponse(bool flushHeaders)
         {
             await FireOnStarting();
 
@@ -204,10 +204,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                 ThrowResponseAbortedException();
             }
 
-            await ProduceStart();
+            await ProduceStart(flushHeaders);
         }
 
-        private async Task ProduceStart()
+        private async Task ProduceStart(bool flushHeaders)
         {
             Debug.Assert(_hasResponseStarted == false);
 
@@ -217,9 +217,12 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
             EnsureIOInitialized();
 
-            await AsyncIO.FlushAsync();
+            if (flushHeaders)
+            {
+                await AsyncIO.FlushAsync();
+            }
 
-            _writeBodyTask = WriteBody();
+            _writeBodyTask = WriteBody(!flushHeaders);
         }
 
         private void InitializeRequestIO()
@@ -284,7 +287,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private async Task ProduceEndAwaited()
         {
-            await ProduceStart();
+            await ProduceStart(true);
             await _bodyOutput.FlushAsync(default);
         }
 

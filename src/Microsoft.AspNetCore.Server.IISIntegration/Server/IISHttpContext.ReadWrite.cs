@@ -58,7 +58,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             async Task WriteFirstAsync()
             {
-                await InitializeResponse();
+                await InitializeResponse(flushHeaders: false);
                 await _bodyOutput.WriteAsync(memory, cancellationToken);
             }
 
@@ -74,7 +74,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
         {
             async Task FlushFirstAsync()
             {
-                await InitializeResponse();
+                await InitializeResponse(flushHeaders: true);
                 await _bodyOutput.FlushAsync(cancellationToken);
             }
 
@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             }
         }
 
-        private async Task WriteBody()
+        private async Task WriteBody(bool flush = false)
         {
             try
             {
@@ -138,14 +138,18 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                             await AsyncIO.WriteAsync(buffer);
                         }
 
-                        if (result.IsCanceled)
-                        {
-                            await AsyncIO.FlushAsync();
-                        }
-
+                        // if request is done no need to flush, http.sys would do it for us
                         if (result.IsCompleted)
                         {
                             break;
+                        }
+
+                        flush = flush | result.IsCanceled;
+
+                        if (flush)
+                        {
+                            await AsyncIO.FlushAsync();
+                            flush = false;
                         }
                     }
                     finally
