@@ -146,6 +146,11 @@ public:
         _Out_ BSTR**        pbstrArgv
     );
 
+    static
+    BOOL
+    IsDotnetExecutable(
+        PCWSTR  executablePath
+    );
 private:
 
     UTILITY() {}

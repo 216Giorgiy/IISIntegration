@@ -52,7 +52,7 @@ HOSTFXR_UTILITY::GetHostFxrParameters(
     }
 
     // Check if the absolute path is to dotnet or not.
-    if (struAbsolutePathToDotnet.EndsWith(L"dotnet.exe") || struAbsolutePathToDotnet.EndsWith(L"dotnet"))
+    if (UTILITY::IsDotnetExecutable(struAbsolutePathToDotnet.QueryStr()))
     {
         //
         // The processPath ends with dotnet.exe or dotnet

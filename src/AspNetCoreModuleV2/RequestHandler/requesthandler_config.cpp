@@ -67,8 +67,7 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
             goto Finished;
         }
 
-        if (struExeLocation.EndsWith(L"dotnet.exe", true)
-            || struExeLocation.EndsWith(L"dotnet", true))
+        if (UTILITY::IsDotnetExecutable(struExeLocation.QueryStr()))
         {
             if (FAILED(hr = UTILITY::ParseHostfxrArguments(
                 pRequestHandlerConfig->QueryArguments()->QueryStr(),

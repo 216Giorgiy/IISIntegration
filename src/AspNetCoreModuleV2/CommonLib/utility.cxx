@@ -751,7 +751,6 @@ Finished:
     return hr;
 }
 
-
 //
 // Runs a standalone appliction.
 // The folder structure looks like this:
@@ -881,4 +880,15 @@ UTILITY::GetStandaloneHostfxrParameters(
 Finished:
 
     return hr;
+}
+
+BOOL
+UTILITY::IsDotnetExecutable(PCWSTR executablePath)
+{
+    STRU struDotnetExecutablePath;
+    if (FAILED(struDotnetExecutablePath.Copy(executablePath)))
+    {
+        return FALSE;
+    }
+    return struDotnetExecutablePath.EndsWith(L"dotnet.exe") || struDotnetExecutablePath.EndsWith(L"dotnet");
 }
