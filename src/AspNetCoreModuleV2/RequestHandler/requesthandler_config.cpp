@@ -95,7 +95,6 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
             }
         }
      
-
         pRequestHandlerConfig->SetHostFxrArguments(dwArgCount, pwzArgv);
     }
 

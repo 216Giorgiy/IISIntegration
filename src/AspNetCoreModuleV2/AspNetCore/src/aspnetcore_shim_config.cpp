@@ -39,7 +39,7 @@ ASPNETCORE_SHIM_CONFIG::GetConfig(
     _In_  HTTP_MODULE_ID           pModuleId,
     _In_  IHttpApplication        *pHttpApplication,
     _In_  HANDLE                   hEventLog,
-    _Out_ BSTR                    *pcwzExePath,
+    _Out_ BSTR                    *bstrExePath,
     _Out_ ASPNETCORE_SHIM_CONFIG **ppAspNetCoreShimConfig
 )
 {
@@ -104,7 +104,7 @@ ASPNETCORE_SHIM_CONFIG::GetConfig(
 
         pAspNetCoreShimConfig->SetHostFxrArguments(dwArgCount, pwzArgv);
 
-        *pcwzExePath = SysAllocString(struExeAbsolutePath.QueryStr());
+        *bstrExePath = SysAllocString(struExeAbsolutePath.QueryStr());
     }
 
     hr = pHttpApplication->GetModuleContextContainer()->
