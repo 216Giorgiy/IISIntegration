@@ -184,7 +184,7 @@ APPLICATION_INFO::EnsureApplicationCreated(
 {
     HRESULT             hr = S_OK;
     BOOL                fLocked = FALSE;
-    IAPPLICATION*        pApplication = NULL;
+    IAPPLICATION       *pApplication = NULL;
     STACK_STRU(struFileName, 300);  // >MAX_PATH
     STRU                struHostFxrDllLocation;
 

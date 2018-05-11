@@ -81,7 +81,6 @@ TEST(ParseHostFxrArguments, ProvideNoArgs_InvalidArgs)
     EXPECT_EQ(E_INVALIDARG, hr);
 }
 
-
 TEST(GetAbsolutePathToDotnetFromProgramFiles, BackupWorks)
 {
     STRU struAbsolutePathToDotnet;
