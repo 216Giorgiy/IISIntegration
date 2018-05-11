@@ -157,4 +157,5 @@ extern SRWLOCK      g_srwLock;
 extern PCWSTR       g_pwzAspnetcoreRequestHandlerName;
 extern HANDLE       g_hEventLog;
 extern PFN_ASPNETCORE_CREATE_APPLICATION      g_pfnAspNetCoreCreateApplication;
+extern PFN_ASPNETCORE_SET_KEY_VALUE      g_pfnAspNetCoreSetKeyValue;
 #pragma warning( error : 4091)

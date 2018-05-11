@@ -765,7 +765,7 @@ Finished:
 //
 HRESULT
 UTILITY::GetStandaloneHostfxrParameters(
-    BSTR                pwzExeAbsolutePath, // includes .exe file extension.
+    PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
     PCWSTR				pcwzApplicationPhysicalPath,
     PCWSTR              pcwzArguments,
     HANDLE              hEventLog,

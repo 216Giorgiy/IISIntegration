@@ -11,8 +11,14 @@ HRESULT
 (WINAPI * PFN_ASPNETCORE_CREATE_APPLICATION)(
     _In_  IHttpServer    *pServer,
     _In_  IHttpContext   *pHttpContext,
-    _In_  BSTR            pcwzExePath,
     _Out_ IAPPLICATION  **pApplication
+    );
+
+typedef
+HRESULT
+(WINAPI * PFN_ASPNETCORE_SET_KEY_VALUE)(
+    _In_  PCWSTR    key,
+    _In_  PCWSTR    value
     );
 
 //
@@ -148,7 +154,7 @@ public:
     HRESULT
     EnsureApplicationCreated(
         IHttpContext   *pHttpContext,
-        BSTR            pcwzExePath
+        std::wstring    exeLocation
     );
 
 private:
@@ -168,6 +174,8 @@ private:
     SRWLOCK                 m_srwLock;
     IHttpServer            *m_pServer;
     PFN_ASPNETCORE_CREATE_APPLICATION      m_pfnAspNetCoreCreateApplication;
+    PFN_ASPNETCORE_SET_KEY_VALUE      m_pfnAspNetCoreSetKeyValue;
+
 };
 
 class APPLICATION_INFO_HASH :

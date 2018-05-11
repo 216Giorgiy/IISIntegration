@@ -22,6 +22,7 @@ HINSTANCE           g_hWinHttpModule;
 HINSTANCE           g_hAspNetCoreModule;
 HANDLE              g_hEventLog = NULL;
 PCSTR               g_szDebugLabel = "ASPNET_CORE_MODULE_REQUEST_HANDLER";
+std::map<std::wstring, std::wstring> requestHandlerConfigurationMap;
 
 VOID
 InitializeGlobalConfiguration(
@@ -277,7 +278,6 @@ __stdcall
 CreateApplication(
     _In_  IHttpServer        *pServer,
     _In_  IHttpContext       *pHttpContext,
-    _In_  BSTR                pwzExeLocation,
     _Out_ IAPPLICATION      **ppApplication
 )
 {
@@ -288,7 +288,9 @@ CreateApplication(
     // Initialze some global variables here
     InitializeGlobalConfiguration(pServer);
 
-    hr = REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(pServer, pHttpContext, pwzExeLocation, g_hEventLog, &pConfig);
+    std::wstring executableLocation = requestHandlerConfigurationMap[L"ExeLocation"];
+
+    hr = REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(pServer, pHttpContext, executableLocation.c_str(), g_hEventLog, &pConfig);
 
     if (FAILED(hr))
     {
@@ -339,3 +341,19 @@ Finished:
     return hr;
 }
 
+
+HRESULT
+__stdcall
+SetKeyValue(
+    _In_  PCWSTR    key,
+    _In_  PCWSTR    value
+)
+{
+    std::wstring keyCopy(key);
+    std::wstring valueCopy(value);
+
+    requestHandlerConfigurationMap[keyCopy] = valueCopy;
+    
+    // Rather have API contain an HR, always return S_OK for now.
+    return S_OK;
+}

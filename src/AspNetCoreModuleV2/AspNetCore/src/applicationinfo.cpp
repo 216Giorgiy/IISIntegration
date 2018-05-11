@@ -179,7 +179,7 @@ APPLICATION_INFO::UpdateAppOfflineFileHandle()
 HRESULT
 APPLICATION_INFO::EnsureApplicationCreated(
     IHttpContext *pHttpContext,
-    BSTR          pcwzExePath
+    std::wstring exeLocation
 )
 {
     HRESULT             hr = S_OK;
@@ -224,8 +224,13 @@ APPLICATION_INFO::EnsureApplicationCreated(
                 hr = HRESULT_FROM_WIN32(ERROR_INVALID_FUNCTION);
                 goto Finished;
             }
+            hr = m_pfnAspNetCoreSetKeyValue(L"ExeLocation", exeLocation.c_str());
+            if (FAILED(hr))
+            {
+                goto Finished;
+            }
 
-            hr = m_pfnAspNetCoreCreateApplication(m_pServer, pHttpContext, pcwzExePath, &pApplication);
+            hr = m_pfnAspNetCoreCreateApplication(m_pServer, pHttpContext, &pApplication);
             if (FAILED(hr))
             {
                 goto Finished;
@@ -317,6 +322,14 @@ APPLICATION_INFO::FindRequestHandlerAssembly()
             hr = HRESULT_FROM_WIN32(GetLastError());
             goto Finished;
         }
+
+        g_pfnAspNetCoreSetKeyValue = (PFN_ASPNETCORE_SET_KEY_VALUE)
+            GetProcAddress(g_hAspnetCoreRH, "SetKeyValue");
+        if (g_pfnAspNetCoreCreateApplication == NULL)
+        {
+            hr = HRESULT_FROM_WIN32(GetLastError());
+            goto Finished;
+        }
         g_fAspnetcoreRHAssemblyLoaded = TRUE;
     }
 
@@ -326,6 +339,8 @@ Finished:
     // User needs to check whether the fuction pointer is NULL
     //
     m_pfnAspNetCoreCreateApplication = g_pfnAspNetCoreCreateApplication;
+    m_pfnAspNetCoreSetKeyValue = g_pfnAspNetCoreSetKeyValue;
+
     if (!g_fAspnetcoreRHLoadedError && FAILED(hr))
     {
         g_fAspnetcoreRHLoadedError = TRUE;

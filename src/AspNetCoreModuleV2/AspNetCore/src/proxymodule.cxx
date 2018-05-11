@@ -81,7 +81,7 @@ ASPNET_CORE_PROXY_MODULE::OnExecuteRequestHandler(
     APPLICATION_MANAGER   *pApplicationManager = NULL;
     REQUEST_NOTIFICATION_STATUS retVal = RQ_NOTIFICATION_CONTINUE;
     IAPPLICATION* pApplication = NULL;
-    BSTR bstrExePath = NULL;
+    std::wstring exeLocation = L"";
     STACK_STRU(struFileName, 256);
 
     if (g_fInShutdown)
@@ -90,7 +90,7 @@ ASPNET_CORE_PROXY_MODULE::OnExecuteRequestHandler(
         goto Finished;
     }
 
-    hr = ASPNETCORE_SHIM_CONFIG::GetConfig(g_pHttpServer, g_pModuleId, pHttpContext->GetApplication(), g_hEventLog, &bstrExePath, &pConfig);
+    hr = ASPNETCORE_SHIM_CONFIG::GetConfig(g_pHttpServer, g_pModuleId, pHttpContext->GetApplication(), g_hEventLog, &exeLocation, &pConfig);
     if (FAILED(hr))
     {
         goto Finished;
@@ -144,7 +144,7 @@ ASPNET_CORE_PROXY_MODULE::OnExecuteRequestHandler(
     }
 
     // make sure assmebly is loaded and application is created
-    hr = m_pApplicationInfo->EnsureApplicationCreated(pHttpContext, bstrExePath);
+    hr = m_pApplicationInfo->EnsureApplicationCreated(pHttpContext, exeLocation);
     if (FAILED(hr))
     {
         goto Finished;
@@ -185,13 +185,6 @@ Finished:
         {
             pHttpContext->GetResponse()->SetStatus(500, "Internal Server Error", 0, hr);
         }
-    }
-
-    if (bstrExePath != NULL)
-    {
-        // Exe string has already been reinterpreted as an argument in the request handler,
-        // Allowed to free now
-        SysFreeString(bstrExePath);
     }
 
     if (pApplication != NULL)

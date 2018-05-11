@@ -20,7 +20,9 @@ SRWLOCK             g_srwLock;
 DWORD               g_dwDebugFlags = 0;
 PCSTR               g_szDebugLabel = "ASPNET_CORE_MODULE";
 PCWSTR              g_pwzAspnetcoreRequestHandlerName = L"aspnetcorerh.dll";
-PFN_ASPNETCORE_CREATE_APPLICATION      g_pfnAspNetCoreCreateApplication;
+PFN_ASPNETCORE_CREATE_APPLICATION       g_pfnAspNetCoreCreateApplication;
+PFN_ASPNETCORE_SET_KEY_VALUE            g_pfnAspNetCoreSetKeyValue;
+
 
 VOID
 StaticCleanup()
