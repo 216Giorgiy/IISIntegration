@@ -62,9 +62,9 @@ public:
     CreateRequestHandlerConfig(
         _In_  IHttpServer             *pHttpServer,
         _In_  IHttpContext            *pHttpContext,
-		_In_  BSTR  				   pwzExeLocation,
+        _In_  BSTR  				   pwzExeLocation,
         _In_  HANDLE                   hEventLog,
-		_Out_ REQUESTHANDLER_CONFIG  **ppAspNetCoreConfig
+        _Out_ REQUESTHANDLER_CONFIG  **ppAspNetCoreConfig
     );
 
     ENVIRONMENT_VAR_HASH*

@@ -27,7 +27,7 @@ public:
         _In_  HTTP_MODULE_ID           pModuleId,
         _In_  IHttpApplication        *pHttpApplication,
         _In_  HANDLE                   hEventLog,
-        _Out_ BSTR		              *pcwzExePath,
+        _Out_ BSTR                    *pcwzExePath,
         _Out_ ASPNETCORE_SHIM_CONFIG **ppAspNetCoreConfig
     );
 

@@ -147,8 +147,8 @@ public:
 
     HRESULT
     EnsureApplicationCreated(
-        IHttpContext *pHttpContext,
-        BSTR        pcwzExePath
+        IHttpContext   *pHttpContext,
+        BSTR            pcwzExePath
     );
 
 private:

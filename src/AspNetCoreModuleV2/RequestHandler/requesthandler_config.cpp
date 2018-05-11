@@ -25,7 +25,7 @@ HRESULT
 REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     _In_  IHttpServer             *pHttpServer,
     _In_  IHttpContext            *pHttpContext, 
-	_In_  BSTR				       pwzExeLocation,
+	_In_  BSTR                     pwzExeLocation,
     _In_  HANDLE                   hEventLog, 
 	_Out_ REQUESTHANDLER_CONFIG  **ppAspNetCoreConfig
 )
@@ -61,10 +61,10 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     if (pRequestHandlerConfig->QueryHostingModel() == APP_HOSTING_MODEL::HOSTING_IN_PROCESS)
     {
         if (FAILED(hr = UTILITY::ParseHostfxrArguments(
-			pRequestHandlerConfig->QueryArguments()->QueryStr(),
-			pwzExeLocation,
-			pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
-			hEventLog,
+            pRequestHandlerConfig->QueryArguments()->QueryStr(),
+            pwzExeLocation,
+            pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
+            hEventLog,
             &dwArgCount,
             &pwzArgv)))
         {

@@ -18,7 +18,7 @@ public:
     HRESULT
     GetHostFxrParameters(
         _In_ HANDLE         hEventLog,
-        _In_ PCWSTR			pcwzProcessPath,
+        _In_ PCWSTR         pcwzProcessPath,
         _In_ PCWSTR         pcwzApplicationPhysicalPath,
         _In_ PCWSTR         pcwzArguments,
         _Inout_ STRU       *pStruHostFxrDllLocation,

@@ -14,13 +14,13 @@ HOSTFXR_UTILITY::~HOSTFXR_UTILITY()
 HRESULT
 HOSTFXR_UTILITY::GetHostFxrParameters(
     _In_ HANDLE         hEventLog,
-    _In_ PCWSTR			pcwzProcessPath,
+    _In_ PCWSTR         pcwzProcessPath,
     _In_ PCWSTR         pcwzApplicationPhysicalPath,
     _In_ PCWSTR         pcwzArguments,
     _Inout_ STRU       *pStruHostFxrDllLocation,
     _Inout_ STRU       *struExeAbsolutePath,
     _Out_ DWORD        *pdwArgCount,
-    _Out_ BSTR        **ppwzArgv
+    _Out_ BSTR        **pbstrArgv
 )
 {
     HRESULT                     hr = S_OK;
@@ -28,7 +28,6 @@ HOSTFXR_UTILITY::GetHostFxrParameters(
     STRU                        struAbsolutePathToHostFxr;
     STRU                        struAbsolutePathToDotnet;
     STRU                        struEventMsg;
-    BSTR*                       pbstrArgv;
     STACK_STRU(struExpandedProcessPath, MAX_PATH);
     STACK_STRU(struExpandedArguments, MAX_PATH);
 
@@ -76,7 +75,7 @@ HOSTFXR_UTILITY::GetHostFxrParameters(
             pcwzApplicationPhysicalPath,
             hEventLog,
             pdwArgCount,
-            &pbstrArgv)))
+            pbstrArgv)))
         {
             goto Finished;
         }
@@ -106,7 +105,7 @@ HOSTFXR_UTILITY::GetHostFxrParameters(
                 hEventLog,
                 pStruHostFxrDllLocation,
                 pdwArgCount,
-                &pbstrArgv);
+                pbstrArgv);
         }
         else
         {

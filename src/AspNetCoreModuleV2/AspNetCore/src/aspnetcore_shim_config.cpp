@@ -39,7 +39,7 @@ ASPNETCORE_SHIM_CONFIG::GetConfig(
     _In_  HTTP_MODULE_ID           pModuleId,
     _In_  IHttpApplication        *pHttpApplication,
     _In_  HANDLE                   hEventLog,
-    _Out_ BSTR				      *pcwzExePath,
+    _Out_ BSTR                    *pcwzExePath,
     _Out_ ASPNETCORE_SHIM_CONFIG **ppAspNetCoreShimConfig
 )
 {
@@ -81,8 +81,7 @@ ASPNETCORE_SHIM_CONFIG::GetConfig(
         goto Finished;
     }
 
-    // Modify config for inprocess.'
-        // TODO remove this 
+    // Modify Inprocess specific configuration here. 
     if (pAspNetCoreShimConfig->QueryHostingModel() == APP_HOSTING_MODEL::HOSTING_IN_PROCESS)
     {
         if (FAILED(hr = HOSTFXR_UTILITY::GetHostFxrParameters(

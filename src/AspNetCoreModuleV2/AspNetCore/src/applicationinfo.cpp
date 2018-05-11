@@ -179,7 +179,7 @@ APPLICATION_INFO::UpdateAppOfflineFileHandle()
 HRESULT
 APPLICATION_INFO::EnsureApplicationCreated(
     IHttpContext *pHttpContext,
-    BSTR pcwzExePath
+    BSTR          pcwzExePath
 )
 {
     HRESULT             hr = S_OK;

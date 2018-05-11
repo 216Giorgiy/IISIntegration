@@ -813,7 +813,8 @@ IN_PROCESS_APPLICATION::ExecuteApplication(
 
     DBG_ASSERT(m_status == APPLICATION_STATUS::STARTING);
 
-    // hostfxr should already be loaded by the shim. If the shim eve
+    // hostfxr should already be loaded by the shim. If not, then we will need
+    // to load it ourselves by finding hostfxr again.
     hModule = LoadLibraryW(L"hostfxr.dll");
 
     if (hModule == NULL)
