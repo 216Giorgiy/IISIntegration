@@ -8,12 +8,14 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Server.IntegrationTesting;
 using Microsoft.AspNetCore.Testing.xunit;
 using Xunit;
 
 namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
 {
     [Collection(IISTestSiteCollection.Name)]
+    [SkipIfISExpressSchemaMissingInProcess]
     public class SynchronousReadAndWriteTests
     {
         private readonly IISTestSiteFixture _fixture;

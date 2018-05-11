@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
 {
     public class IISTestSiteFixture : IDisposable
     {
-        private readonly IApplicationDeployer _deployer;
+        private readonly ApplicationDeployer _deployer;
 
         public IISTestSiteFixture()
         {
@@ -23,9 +23,10 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
             {
                 ServerConfigTemplateContent = File.ReadAllText("AppHostConfig/Http.config"),
                 SiteName = "HttpTestSite",
-                TargetFramework = "netcoreapp2.1",
+                TargetFramework = Tfm.NetCoreApp21,
                 ApplicationType = ApplicationType.Portable,
-                ANCMVersion = ANCMVersion.AspNetCoreModuleV2
+                AncmVersion = AncmVersion.AspNetCoreModuleV2,
+                HostingModel = HostingModel.InProcess,
             };
 
             _deployer = ApplicationDeployerFactory.Create(deploymentParameters, NullLoggerFactory.Instance);
