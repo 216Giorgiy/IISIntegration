@@ -106,6 +106,10 @@ HOSTFXR_UTILITY::GetHostFxrParameters(
                 pStruHostFxrDllLocation,
                 pdwArgCount,
                 pbstrArgv);
+
+            if (FAILED(hr = struExeAbsolutePath->Copy(struAbsolutePathToDotnet))) {
+                goto Finished;
+            }
         }
         else
         {
