@@ -59,6 +59,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
                     {
                         _nextOperation = ioOperation;
 
+                        // If there is an active read cancel it
                         if (_runningOperation is AsyncReadOperation)
                         {
                             NativeMethods.HttpTryCancelIO(_handler);

@@ -170,7 +170,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration.FunctionalTests
                     "HTTP/1.1 200 OK",
                     "");
 
-                // This test can return both content lenght or chunked response
+                // This test can return both content length or chunked response
                 // depending on if appfunc managed to complete before write was
                 // issued
                 var headers = await connection.ReceiveHeaders();

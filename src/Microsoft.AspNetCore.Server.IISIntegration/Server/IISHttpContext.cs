@@ -287,7 +287,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         private async Task ProduceEndAwaited()
         {
-            await ProduceStart(true);
+            await ProduceStart(flushHeaders: true);
             await _bodyOutput.FlushAsync(default);
         }
 

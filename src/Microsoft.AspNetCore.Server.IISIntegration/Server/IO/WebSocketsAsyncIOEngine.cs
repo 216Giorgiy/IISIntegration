@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public ValueTask<int> ReadAsync(Memory<byte> memory)
         {
-            CheckInitialized();
+            ThrowIfNotInitialized();
 
             var read = GetReadOperation();
             read.Initialize(_handler, memory);
@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
 
         public ValueTask<int> WriteAsync(ReadOnlySequence<byte> data)
         {
-            CheckInitialized();
+            ThrowIfNotInitialized();
 
             var write = GetWriteOperation();
             write.Initialize(_handler, data);
@@ -90,7 +90,7 @@ namespace Microsoft.AspNetCore.Server.IISIntegration
             continuation.Invoke();
         }
 
-        private void CheckInitialized()
+        private void ThrowIfNotInitialized()
         {
             if (!_isInitialized)
             {
