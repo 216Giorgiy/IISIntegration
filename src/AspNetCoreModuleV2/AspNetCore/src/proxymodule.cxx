@@ -81,7 +81,7 @@ ASPNET_CORE_PROXY_MODULE::OnExecuteRequestHandler(
     APPLICATION_MANAGER   *pApplicationManager = NULL;
     REQUEST_NOTIFICATION_STATUS retVal = RQ_NOTIFICATION_CONTINUE;
     IAPPLICATION* pApplication = NULL;
-    BSTR bstrExePath;
+    BSTR bstrExePath = NULL;
     STACK_STRU(struFileName, 256);
 
     if (g_fInShutdown)
@@ -187,12 +187,12 @@ Finished:
         }
     }
 
-    //if (bstrExePath != NULL)
-    //{
-    //    // Exe string has already been reinterpreted as an argument in the request handler,
-    //    // Allowed to free now
-    //    SysFreeString(bstrExePath);
-    //}
+    if (bstrExePath != NULL)
+    {
+        // Exe string has already been reinterpreted as an argument in the request handler,
+        // Allowed to free now
+        SysFreeString(bstrExePath);
+    }
 
     if (pApplication != NULL)
     {
