@@ -288,6 +288,7 @@ CreateApplication(
     // Initialze some global variables here
     InitializeGlobalConfiguration(pServer);
 
+    // Try to see if the shim set the executable location. If so, we don't need to parse for where dotnet/hostfxr is again.
     std::wstring executableLocation = requestHandlerConfigurationMap[L"ExeLocation"];
 
     hr = REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(pServer, pHttpContext, executableLocation.c_str(), g_hEventLog, &pConfig);

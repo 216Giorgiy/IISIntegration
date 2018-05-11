@@ -61,13 +61,27 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     // Modify config for inprocess.
     if (pRequestHandlerConfig->QueryHostingModel() == APP_HOSTING_MODEL::HOSTING_IN_PROCESS)
     {
-        // if we are standalone, do
         if (FAILED(struExeLocation.Copy(pwzExeLocation)))
         {
             goto Finished;
         }
-
-        if (HOSTFXR_UTILITY::IsDotnetExecutable(struExeLocation.QueryStr()))
+        // If the exe was not provided by the shim, reobtain the hostfxr parameters (which finds dotnet).
+        if (struExeLocation.IsEmpty())
+        {
+            if (FAILED(hr = HOSTFXR_UTILITY::GetHostFxrParameters(
+                hEventLog,
+                pRequestHandlerConfig->QueryProcessPath()->QueryStr(),
+                pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
+                pRequestHandlerConfig->QueryArguments()->QueryStr(),
+                &struHostFxrDllLocation,
+                &struExeLocation,
+                &dwArgCount,
+                &pwzArgv)))
+            {
+                goto Finished;
+            }
+        }
+        else if (HOSTFXR_UTILITY::IsDotnetExecutable(struExeLocation.QueryStr()))
         {
             if (FAILED(hr = HOSTFXR_UTILITY::ParseHostfxrArguments(
                 pRequestHandlerConfig->QueryArguments()->QueryStr(),
