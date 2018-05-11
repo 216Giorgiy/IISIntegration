@@ -33,8 +33,9 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     HRESULT                 hr = S_OK;
     REQUESTHANDLER_CONFIG   *pRequestHandlerConfig = NULL;
     STRU                    struHostFxrDllLocation;
-    PWSTR*                  pwzArgv;
+    BSTR*                   pwzArgv;
     DWORD                   dwArgCount;
+    STRU                    struExeLocation;
 
     if (ppAspNetCoreConfig == NULL)
     {
@@ -60,16 +61,41 @@ REQUESTHANDLER_CONFIG::CreateRequestHandlerConfig(
     // Modify config for inprocess.
     if (pRequestHandlerConfig->QueryHostingModel() == APP_HOSTING_MODEL::HOSTING_IN_PROCESS)
     {
-        if (FAILED(hr = UTILITY::ParseHostfxrArguments(
-            pRequestHandlerConfig->QueryArguments()->QueryStr(),
-            pwzExeLocation,
-            pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
-            hEventLog,
-            &dwArgCount,
-            &pwzArgv)))
+        // if we are standalone, do
+        if (FAILED(struExeLocation.Copy(pwzExeLocation)))
         {
             goto Finished;
         }
+
+        if (struExeLocation.EndsWith(L"dotnet.exe", true)
+            || struExeLocation.EndsWith(L"dotnet", true))
+        {
+            if (FAILED(hr = UTILITY::ParseHostfxrArguments(
+                pRequestHandlerConfig->QueryArguments()->QueryStr(),
+                pwzExeLocation,
+                pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
+                hEventLog,
+                &dwArgCount,
+                &pwzArgv)))
+            {
+                goto Finished;
+            }
+        }
+        else 
+        {
+            if (FAILED(hr = UTILITY::GetStandaloneHostfxrParameters(
+                pwzExeLocation,
+                pRequestHandlerConfig->QueryApplicationPhysicalPath()->QueryStr(),
+                pRequestHandlerConfig->QueryArguments()->QueryStr(),
+                hEventLog,
+                &struHostFxrDllLocation,
+                &dwArgCount,
+                &pwzArgv)))
+            {
+                goto Finished;
+            }
+        }
+     
 
         pRequestHandlerConfig->SetHostFxrArguments(dwArgCount, pwzArgv);
     }

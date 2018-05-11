@@ -126,7 +126,7 @@ public:
     static
     HRESULT
     GetStandaloneHostfxrParameters(
-        PCWSTR              pwzExeAbsolutePath, // includes .exe file extension.
+        BSTR              pwzExeAbsolutePath, // includes .exe file extension.
         PCWSTR				pcwzApplicationPhysicalPath,
         PCWSTR              pcwzArguments,
         HANDLE              hEventLog,
